@@ -5,7 +5,7 @@ import axios from 'axios';
 
 export default function QuotationBuilder({ quotationData, dealData, onSave }) {
   const { user, showToast } = useAuth();
-  const repAuthority = user?.discountAuthority || 10;
+  const repAuthority = user?.role === 'SALES_MANAGER' || user?.role === 'ADMIN' ? 20 : user?.role === 'FINANCE' ? 25 : (user?.discountAuthority || 10);
 
   const [lines, setLines] = useState(
     quotationData?.lines || [
