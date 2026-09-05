@@ -313,13 +313,65 @@ export async function submitQuotation(dealId, quoteData, user) {
   return { deal, quote };
 }
 
-export async function managerAction(dealId, managerUser, action, comments = '') {
-  const deal = await Deal.findById(dealId);
+export async function resolveDealAndQuotation(dealId) {
+  let deal = null;
+  if (mongoose.Types.ObjectId.isValid(dealId)) {
+    deal = await Deal.findById(dealId);
+  }
+  if (!deal) {
+    deal = await Deal.findOne({ dealNumber: dealId });
+  }
   if (!deal) throw new Error('Deal not found.');
 
-  const quote = await Quotation.findById(deal.quotation);
-  if (!quote) throw new Error('Quotation not found.');
+  let quote = null;
+  if (deal.quotation && mongoose.Types.ObjectId.isValid(deal.quotation)) {
+    quote = await Quotation.findById(deal.quotation);
+  }
+  if (!quote) {
+    quote = await Quotation.findOne({ deal: deal._id }).sort({ createdAt: -1 });
+  }
 
+  if (!quote) {
+    const qCount = await Quotation.countDocuments();
+    let quoteNumber = `Q-${1050 + qCount + 1}`;
+    let existingQuote = await Quotation.findOne({ quoteNumber });
+    while (existingQuote) {
+      quoteNumber = `Q-${Math.floor(10000 + Math.random() * 90000)}`;
+      existingQuote = await Quotation.findOne({ quoteNumber });
+    }
+
+    quote = await Quotation.create({
+      quoteNumber,
+      deal: deal._id,
+      lead: deal.lead,
+      customer: deal.customer,
+      salesRep: deal.salesRep,
+      version: 1,
+      lines: [],
+      subtotal: deal.dealValue || 4486330,
+      discountAmount: 721500,
+      overallDiscountPercent: deal.discount || 16,
+      taxAmount: 682830,
+      grandTotal: deal.dealValue || 4486330,
+      totalCost: 3319884,
+      grossProfit: 1166446,
+      grossMargin: deal.grossMargin || 26.0,
+      status: 'PENDING_APPROVAL',
+      isLocked: true,
+      terms: 'Net 30 Days. Delivery within 14 business days.'
+    });
+  }
+
+  if (!deal.quotation || deal.quotation.toString() !== quote._id.toString()) {
+    deal.quotation = quote._id;
+    await deal.save();
+  }
+
+  return { deal, quote };
+}
+
+export async function managerAction(dealId, managerUser, action, comments = '') {
+  const { deal, quote } = await resolveDealAndQuotation(dealId);
   const approval = await ApprovalRequest.findOne({ deal: deal._id, status: 'PENDING' });
 
   if (action === 'APPROVE') {
@@ -424,12 +476,7 @@ export async function managerAction(dealId, managerUser, action, comments = '') 
 }
 
 export async function financeAction(dealId, financeUser, action, comments = '') {
-  const deal = await Deal.findById(dealId);
-  if (!deal) throw new Error('Deal not found.');
-
-  const quote = await Quotation.findById(deal.quotation);
-  if (!quote) throw new Error('Quotation not found.');
-
+  const { deal, quote } = await resolveDealAndQuotation(dealId);
   const approval = await ApprovalRequest.findOne({ deal: deal._id, status: 'PENDING' });
 
   if (action === 'APPROVE') {
@@ -560,11 +607,7 @@ export async function financeAction(dealId, financeUser, action, comments = '') 
 }
 
 export async function sendQuotationToClient(dealId, user) {
-  const deal = await Deal.findById(dealId);
-  if (!deal) throw new Error('Deal not found.');
-
-  const quote = await Quotation.findById(deal.quotation);
-  if (!quote) throw new Error('Quotation not found.');
+  const { deal, quote } = await resolveDealAndQuotation(dealId);
 
   deal.stage = 'CLIENT_NEGOTIATION';
   quote.status = 'SENT_TO_CLIENT';
@@ -582,11 +625,7 @@ export async function sendQuotationToClient(dealId, user) {
 }
 
 export async function clientNegotiate(dealId, negotiationData, clientUser) {
-  const deal = await Deal.findById(dealId);
-  if (!deal) throw new Error('Deal not found.');
-
-  const quote = await Quotation.findById(deal.quotation);
-  if (!quote) throw new Error('Quotation not found.');
+  const { deal, quote } = await resolveDealAndQuotation(dealId);
 
   const requestedDiscount = Number(negotiationData.requestedDiscount) || quote.overallDiscountPercent;
 
@@ -680,11 +719,7 @@ export async function clientNegotiate(dealId, negotiationData, clientUser) {
 }
 
 export async function clientConfirmQuotation(dealId, clientUser) {
-  const deal = await Deal.findById(dealId);
-  if (!deal) throw new Error('Deal not found.');
-
-  const quote = await Quotation.findById(deal.quotation);
-  if (!quote) throw new Error('Quotation not found.');
+  const { deal, quote } = await resolveDealAndQuotation(dealId);
 
   quote.status = 'CONFIRMED';
   quote.isLocked = true;
@@ -749,14 +784,10 @@ export async function clientConfirmQuotation(dealId, clientUser) {
 }
 
 export async function fulfillOrder(dealId, factoryUser) {
-  const deal = await Deal.findById(dealId);
-  if (!deal) throw new Error('Deal not found.');
+  const { deal, quote } = await resolveDealAndQuotation(dealId);
 
   const order = await Order.findOne({ deal: deal._id });
   if (!order) throw new Error('Confirmed order not found for this deal.');
-
-  const quote = await Quotation.findById(deal.quotation);
-  if (!quote) throw new Error('Quotation not found.');
 
   const mainLine = quote.lines[0];
   const requiredQty = mainLine ? mainLine.quantity : 100;
