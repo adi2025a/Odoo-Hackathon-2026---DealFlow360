@@ -20,6 +20,7 @@ import AuthPage from './components/auth/AuthPage';
 function MainLayout() {
   const { user, loading, toast, demoLogin, showToast } = useAuth();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (loading) {
     return (
@@ -89,17 +90,17 @@ function MainLayout() {
   const getRoleBgClass = () => {
     switch (user?.role) {
       case 'CLIENT':
-        return 'bg-role-client text-white';
+        return 'bg-role-client text-stone-900';
       case 'SALES_MANAGER':
-        return 'bg-role-manager';
+        return 'bg-role-manager text-slate-900';
       case 'FINANCE':
-        return 'bg-role-finance';
+        return 'bg-role-finance text-slate-900';
       case 'FACTORY':
-        return 'bg-role-factory text-white';
+        return 'bg-role-factory text-slate-900';
       case 'ADMIN':
-        return 'bg-role-admin text-white';
+        return 'bg-role-admin text-slate-900';
       default:
-        return 'bg-role-sales-rep';
+        return 'bg-role-sales-rep text-slate-900';
     }
   };
 
@@ -117,11 +118,17 @@ function MainLayout() {
       )}
 
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <TopBar onTriggerScenario={handleTriggerScenario} />
+        <TopBar
+          onTriggerScenario={handleTriggerScenario}
+          onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
+        />
 
         <main className={`flex-1 overflow-y-auto transition-colors duration-500 ${getRoleBgClass()}`}>
           <Routes>

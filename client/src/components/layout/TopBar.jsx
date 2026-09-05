@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Bell, User, LogOut, ChevronDown, Sparkles, AlertCircle, PlayCircle, ShieldCheck } from 'lucide-react';
+import { Search, Bell, User, LogOut, ChevronDown, Sparkles, AlertCircle, PlayCircle, ShieldCheck, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-export default function TopBar({ onTriggerScenario }) {
+export default function TopBar({ onTriggerScenario, onToggleMobileMenu }) {
   const { user, demoLogin, logout, showToast } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
@@ -25,7 +25,19 @@ export default function TopBar({ onTriggerScenario }) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between z-40 sticky top-0 shadow-sm">
+    <header className="h-16 bg-white border-b border-slate-200 px-3 md:px-6 flex items-center justify-between z-40 sticky top-0 shadow-sm">
+      {/* Mobile Brand & Hamburger Button */}
+      <div className="flex items-center space-x-2 md:hidden">
+        <button
+          onClick={onToggleMobileMenu}
+          className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+          title="Open Menu"
+        >
+          <Menu size={22} />
+        </button>
+        <span className="font-extrabold text-slate-900 tracking-tight text-base">DEALFLOW<span className="text-blue-600">360</span></span>
+      </div>
+
       {/* Global Search Bar */}
       <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md hidden sm:block">
         <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />

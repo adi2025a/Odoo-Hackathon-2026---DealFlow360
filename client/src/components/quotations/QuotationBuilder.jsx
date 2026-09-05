@@ -136,7 +136,7 @@ export default function QuotationBuilder({ quotationData, dealData, onSave }) {
 
       {/* Quotation Line Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs border-collapse">
+        <table className="w-full text-left text-xs border-collapse min-w-[600px]">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
               <th className="p-3">Product / Service</th>

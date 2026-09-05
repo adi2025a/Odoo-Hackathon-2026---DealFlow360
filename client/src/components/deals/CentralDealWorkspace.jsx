@@ -384,27 +384,29 @@ export default function CentralDealWorkspace() {
           </div>
         </div>
 
-        {/* 10-Stage Progress Stepper */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-between overflow-x-auto text-xs font-semibold text-slate-500 gap-2">
-          {STAGES.map((stg, idx) => {
-            const isCurrent = currentStageIndex === idx;
-            const isPast = currentStageIndex > idx;
+        {/* 5-Stage Streamlined Flowchart Stepper */}
+        <div className="pt-3 border-t border-slate-100 overflow-x-auto">
+          <div className="flex items-center justify-between min-w-[650px] text-xs font-semibold text-slate-500 gap-2 pb-1">
+            {STAGES.map((stg, idx) => {
+              const isCurrent = currentStageIndex === idx;
+              const isPast = currentStageIndex > idx;
 
-            return (
-              <div key={stg.key} className="flex items-center space-x-1 flex-shrink-0">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${
-                  isCurrent ? 'bg-blue-600 text-white ring-4 ring-blue-100' :
-                  isPast ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
-                }`}>
-                  {isPast ? <Check size={12} /> : idx + 1}
+              return (
+                <div key={stg.key} className="flex items-center space-x-1 flex-shrink-0">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${
+                    isCurrent ? 'bg-blue-600 text-white ring-4 ring-blue-100' :
+                    isPast ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    {isPast ? <Check size={12} /> : idx + 1}
+                  </div>
+                  <span className={isCurrent ? 'text-blue-600 font-bold' : isPast ? 'text-slate-900 font-semibold' : 'text-slate-400'}>
+                    {stg.label}
+                  </span>
+                  {idx < STAGES.length - 1 && <span className="text-slate-300 ml-1">→</span>}
                 </div>
-                <span className={isCurrent ? 'text-blue-600 font-bold' : isPast ? 'text-slate-900 font-semibold' : 'text-slate-400'}>
-                  {stg.label}
-                </span>
-                {idx < STAGES.length - 1 && <span className="text-slate-300 ml-1">→</span>}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* 🔒 DEAL LOCKED Banner */}

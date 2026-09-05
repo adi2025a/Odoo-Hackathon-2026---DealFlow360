@@ -410,8 +410,8 @@ export default function SalesDashboard({ viewMode }) {
             </button>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl card-shadow overflow-hidden">
-            <table className="w-full text-left text-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl card-shadow overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[700px]">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                 <tr>
                   <th className="p-4">Deal ID / Title</th>

@@ -3,11 +3,11 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FileText, CheckCircle2, Package, ShoppingCart,
   Layers, ShieldAlert, BarChart3, Settings, MessageSquare, CheckSquare,
-  Building2, ChevronLeft, ChevronRight, HelpCircle, UserCheck, Truck, RefreshCw
+  Building2, ChevronLeft, ChevronRight, HelpCircle, UserCheck, Truck, RefreshCw, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }) {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
@@ -72,26 +72,31 @@ export default function Sidebar() {
     userRole === 'FACTORY' ? factoryNav :
     adminNav;
 
-  return (
-    <aside className={`glass-card border-r border-slate-200/80 flex flex-col transition-all duration-300 z-20 select-none shadow-lg ${collapsed ? 'w-20' : 'w-64'}`}>
+  const sidebarContent = (
+    <div className="flex flex-col h-full bg-white select-none">
       {/* Brand Header */}
       <div className="h-16 px-4 flex items-center justify-between border-b border-slate-200/80">
-        {!collapsed && (
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-blue-500/20">
-              D
-            </div>
+        <div className="flex items-center space-x-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-blue-500/20">
+            D
+          </div>
+          {(!collapsed || mobileOpen) && (
             <div>
               <span className="font-extrabold text-slate-900 tracking-tight text-lg">DEALFLOW<span className="text-blue-600">360</span></span>
               <p className="text-[10px] text-slate-500 font-bold leading-none">Enterprise Governance</p>
             </div>
-          </div>
-        )}
-        {collapsed && (
-          <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-md">
-            D
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Mobile Close Button */}
+        <button
+          onClick={onMobileClose}
+          className="md:hidden p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+        >
+          <X size={20} />
+        </button>
+
+        {/* Desktop Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="hidden md:flex p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
@@ -101,11 +106,11 @@ export default function Sidebar() {
       </div>
 
       {/* Role Badge */}
-      {!collapsed && (
+      {(!collapsed || mobileOpen) && (
         <div className="px-4 py-3 bg-slate-50/70 border-b border-slate-200/80 flex items-center justify-between">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Workspace</span>
           <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black tracking-wider uppercase border ${
-            userRole === 'CLIENT' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+            userRole === 'CLIENT' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
             user?.role === 'ADMIN' ? 'bg-rose-50 text-rose-800 border-rose-200' :
             user?.role === 'FINANCE' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
             user?.role === 'SALES_MANAGER' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
@@ -126,16 +131,17 @@ export default function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onMobileClose}
               className={`flex items-center px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all ${
                 isActive
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-[1.02]'
                   : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
               }`}
-              title={collapsed ? item.name : undefined}
+              title={collapsed && !mobileOpen ? item.name : undefined}
             >
               <Icon size={18} className={`${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'} flex-shrink-0`} />
-              {!collapsed && <span className="ml-3 flex-1 font-extrabold">{item.name}</span>}
-              {!collapsed && item.badge && (
+              {(!collapsed || mobileOpen) && <span className="ml-3 flex-1 font-extrabold">{item.name}</span>}
+              {(!collapsed || mobileOpen) && item.badge && (
                 <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${
                   isActive ? 'bg-white/20 text-white' :
                   item.badge === 'High Risk' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
@@ -150,7 +156,7 @@ export default function Sidebar() {
 
       {/* Footer User Info */}
       <div className="p-3.5 border-t border-slate-200/80 bg-slate-50/70">
-        {!collapsed ? (
+        {!collapsed || mobileOpen ? (
           <div className="flex items-center justify-between">
             <div className="truncate">
               <p className="text-xs font-black text-slate-900 truncate">{user?.name || 'User'}</p>
@@ -163,6 +169,30 @@ export default function Sidebar() {
           </div>
         )}
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar (hidden on mobile) */}
+      <aside className={`hidden md:flex glass-card border-r border-slate-200/80 flex-col transition-all duration-300 z-20 select-none shadow-lg ${collapsed ? 'w-20' : 'w-64'}`}>
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Sidebar Overlay Drawer (visible when mobileOpen is true) */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={onMobileClose}
+          />
+          {/* Drawer content */}
+          <aside className="relative flex-1 max-w-xs w-full bg-white h-full shadow-2xl flex flex-col z-10 animate-fade-in-down">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

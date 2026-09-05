@@ -138,8 +138,8 @@ export default function FactoryDashboard() {
       </div>
 
       {/* Product Addition Requests History Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl card-shadow overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white border border-slate-200 rounded-2xl card-shadow overflow-x-auto">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between min-w-[650px]">
           <div>
             <h3 className="font-extrabold text-slate-900 text-base">Submitted Catalog Product Addition Requests</h3>
             <p className="text-xs text-slate-500 mt-0.5">Requests sent to Admin for review, pricing, and software catalog listing.</p>
@@ -149,7 +149,7 @@ export default function FactoryDashboard() {
           </span>
         </div>
 
-        <table className="w-full text-left text-xs">
+        <table className="w-full text-left text-xs min-w-[650px]">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
             <tr>
               <th className="p-4">SKU / Product Name</th>

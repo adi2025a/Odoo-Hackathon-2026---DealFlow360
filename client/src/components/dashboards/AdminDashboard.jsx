@@ -202,10 +202,10 @@ export default function AdminDashboard() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('users')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center whitespace-nowrap flex-shrink-0 ${
             activeTab === 'users'
               ? 'bg-purple-600 text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
         </button>
         <button
           onClick={() => setActiveTab('requests')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center whitespace-nowrap flex-shrink-0 ${
             activeTab === 'requests'
               ? 'bg-purple-600 text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
         </button>
         <button
           onClick={() => setActiveTab('catalog')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center whitespace-nowrap flex-shrink-0 ${
             activeTab === 'catalog'
               ? 'bg-purple-600 text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -235,7 +235,7 @@ export default function AdminDashboard() {
         </button>
         <button
           onClick={() => setActiveTab('reports')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center whitespace-nowrap flex-shrink-0 ${
             activeTab === 'reports'
               ? 'bg-purple-600 text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
