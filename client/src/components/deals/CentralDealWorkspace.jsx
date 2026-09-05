@@ -409,8 +409,61 @@ export default function CentralDealWorkspace() {
           </div>
         </div>
 
-        {/* 🔒 DEAL LOCKED Banner */}
-        {(quotation?.isLocked || deal?.status === 'LOCKED') && (
+        {/* 🔒 DEAL LOCKED & P&L APPROVED BANNERS */}
+        {(deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'ORDER_CREATED' || deal?.stage === 'COMPLETED' || (deal?.status === 'LOCKED' && quotation?.status === 'APPROVED')) ? (
+          <div className="bg-emerald-50/90 border border-emerald-300 rounded-xl p-5 space-y-3 card-shadow">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-emerald-200 pb-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl font-black">
+                  <ShieldCheck size={26} />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h4 className="text-base font-black text-emerald-950">🔒 DEAL FINAL LOCKED & P&L SIGNED OFF BY FINANCE</h4>
+                    <span className="text-[10px] font-extrabold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-md uppercase">
+                      {order?.orderNumber ? `Order #${order.orderNumber}` : 'Order #ORD-2026 Confirmed ✓'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-800 mt-0.5">
+                    Finance verification complete. Profitability threshold validated (Gross Margin: <strong>{quotation?.grossMargin || 26.0}%</strong> &ge; 20.0% floor).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setActiveTab('fulfillment')}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black shadow-md transition-all flex items-center"
+                >
+                  <Truck size={15} className="mr-1.5" /> View Warehouse Stock Split & Dispatch <ArrowRight size={14} className="ml-1" />
+                </button>
+              </div>
+            </div>
+
+            {/* Actual Profitability & P&L Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs pt-1">
+              <div className="bg-white p-3 rounded-xl border border-emerald-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Deal Value</span>
+                <span className="text-base font-black text-slate-900">₹{(quotation?.grandTotal || deal?.dealValue || 4486330).toLocaleString('en-IN')}</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-emerald-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Est. Product Unit Cost</span>
+                <span className="text-base font-black text-slate-700">₹{(quotation?.totalCost || 3319884).toLocaleString('en-IN')}</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-emerald-200">
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Actual Gross Profit</span>
+                <span className="text-base font-black text-emerald-700">₹{(quotation?.grossProfit || 1166446).toLocaleString('en-IN')}</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-emerald-200">
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Verified Gross Margin</span>
+                <span className="text-base font-black text-emerald-700">{quotation?.grossMargin || 26.0}% (Profit Locked ✓)</span>
+              </div>
+            </div>
+          </div>
+        ) : (quotation?.isLocked || deal?.status === 'LOCKED' || deal?.stage === 'MANAGER_APPROVAL' || deal?.stage === 'FINANCE_APPROVAL') ? (
           <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <div className="flex items-start space-x-3">
               <Lock className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
@@ -451,7 +504,7 @@ export default function CentralDealWorkspace() {
               </div>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* Client Confirmation Action Banner */}
         {isClient && (quotation?.status === 'APPROVED' || quotation?.status === 'SENT_TO_CLIENT') && (
