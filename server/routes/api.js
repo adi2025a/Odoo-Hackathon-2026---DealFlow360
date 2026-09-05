@@ -1080,44 +1080,116 @@ router.post('/invoices/:id/payment', authenticateToken, async (req, res) => {
 // ----------------------------------------------------
 // 11. CHAT MESSAGES & REAL-TIME
 // ----------------------------------------------------
+// Helper function to resolve or create conversation for any id (conversation._id, dealNumber, deal._id, entityId)
+async function resolveConversation(id, reqUser, conversationType = 'DEAL_CLIENT') {
+  let conversation = null;
+
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    conversation = await Conversation.findById(id);
+  }
+  if (!conversation) {
+    conversation = await Conversation.findOne({ entityId: id });
+  }
+
+  let deal = null;
+  if (!conversation) {
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      deal = await Deal.findById(id);
+    }
+    if (!deal) {
+      deal = await Deal.findOne({ dealNumber: id });
+    }
+
+    if (deal) {
+      conversation = await Conversation.findOne({ deal: deal._id, conversationType });
+      if (!conversation) {
+        conversation = await Conversation.findOne({ deal: deal._id });
+      }
+      if (!conversation) {
+        const repId = mongoose.Types.ObjectId.isValid(deal.salesRep) ? deal.salesRep : undefined;
+        const custId = mongoose.Types.ObjectId.isValid(deal.customer) ? deal.customer : undefined;
+
+        conversation = await Conversation.create({
+          entityType: 'DEAL',
+          entityId: deal.dealNumber,
+          conversationType: conversationType || 'DEAL_CLIENT',
+          deal: deal._id,
+          lead: deal.lead,
+          customer: custId,
+          salesRep: repId,
+          title: conversationType === 'DEAL_CLIENT' ? `Deal Chat — ${deal.dealNumber}` : `Internal Chat — ${deal.dealNumber}`,
+          participants: [custId, repId].filter(Boolean)
+        });
+      }
+    }
+  }
+
+  if (!conversation) {
+    const senderUser = mongoose.Types.ObjectId.isValid(reqUser?.id) ? reqUser.id : undefined;
+    conversation = await Conversation.create({
+      entityType: 'DEAL',
+      entityId: id,
+      conversationType: conversationType || 'DEAL_CLIENT',
+      title: `Chat Room — ${id}`,
+      participants: senderUser ? [senderUser] : []
+    });
+  }
+
+  return conversation;
+}
+
 router.get('/chat/conversations/:id/messages', authenticateToken, async (req, res) => {
   try {
-    const messages = await Message.find({ conversation: req.params.id }).sort({ createdAt: 1 });
+    const conversation = await resolveConversation(req.params.id, req.user);
+    if (!conversation) return res.json([]);
+
+    let query = { conversation: conversation._id };
+    if (conversation.deal) {
+      query = {
+        $or: [
+          { conversation: conversation._id },
+          { deal: conversation.deal }
+        ]
+      };
+    }
+
+    let messages = await Message.find(query).sort({ createdAt: 1 });
+
+    if (req.user.role === 'CLIENT') {
+      messages = messages.filter(m => m.senderRole !== 'INTERNAL_SYSTEM' && m.conversationType !== 'DEAL_INTERNAL');
+    }
+
     return res.json(messages);
   } catch (err) {
+    console.error('❌ Error fetching messages:', err);
     return res.status(500).json({ error: err.message });
   }
 });
 
 router.post('/chat/conversations/:id/messages', authenticateToken, async (req, res) => {
   try {
-    const { text, messageType, attachments, senderName, senderRole } = req.body;
-    let conversation;
-
-    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
-      conversation = await Conversation.findById(req.params.id);
-    }
-    if (!conversation) {
-      conversation = await Conversation.findOne({ entityId: req.params.id });
-    }
-    if (!conversation) {
-      conversation = await Conversation.create({
-        entityType: 'DEAL',
-        entityId: req.params.id,
-        title: `Deal Room: ${req.params.id}`,
-        participants: [req.user.id]
-      });
-    }
+    const { text, messageType, attachments, senderName, senderRole, conversationType } = req.body;
+    const convType = conversationType || (req.user.role === 'CLIENT' ? 'DEAL_CLIENT' : 'DEAL_CLIENT');
+    const conversation = await resolveConversation(req.params.id, req.user, convType);
 
     if (conversation.conversationType === 'DEAL_INTERNAL' && req.user.role === 'CLIENT') {
       return res.status(403).json({ error: 'Access denied. Clients cannot post in internal company conversations.' });
     }
 
+    let senderId = null;
+    if (mongoose.Types.ObjectId.isValid(req.user?.id)) {
+      senderId = req.user.id;
+    } else if (req.user?.email) {
+      const u = await User.findOne({ email: req.user.email });
+      if (u) senderId = u._id;
+    }
+
     const msg = await Message.create({
       conversation: conversation._id,
-      sender: req.user.id,
-      senderName: senderName || req.user.name,
-      senderRole: senderRole || req.user.role,
+      deal: conversation.deal || undefined,
+      sender: senderId || undefined,
+      senderName: senderName || req.user.name || 'User',
+      senderRole: senderRole || req.user.role || 'USER',
       text: text || '',
       messageType: messageType || 'TEXT',
       attachments: attachments || []
@@ -1125,7 +1197,13 @@ router.post('/chat/conversations/:id/messages', authenticateToken, async (req, r
 
     const io = req.app.get('io');
     if (io) {
-      const roomKeys = [req.params.id, conversation.entityId, conversation._id.toString()].filter(Boolean);
+      const roomKeys = [
+        req.params.id,
+        conversation.entityId,
+        conversation._id.toString(),
+        conversation.deal?.toString()
+      ].filter(Boolean);
+
       roomKeys.forEach(room => {
         io.to(String(room)).emit('receive_message', msg);
       });
@@ -1133,6 +1211,7 @@ router.post('/chat/conversations/:id/messages', authenticateToken, async (req, r
 
     return res.status(201).json(msg);
   } catch (err) {
+    console.error('❌ Error sending message:', err);
     return res.status(500).json({ error: err.message });
   }
 });
