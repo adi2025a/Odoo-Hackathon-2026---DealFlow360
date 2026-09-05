@@ -66,8 +66,9 @@ export default function FinanceDashboard({ viewMode }) {
     });
   };
 
-  const currentStage = dealData?.deal?.stage || 'FINANCE_APPROVAL';
-  const isFinancePending = currentStage === 'FINANCE_APPROVAL';
+  const currentStage = dealData?.deal?.stage;
+  const isFinancePending = currentStage === 'FINANCE_APPROVAL' || (!currentStage && loading);
+  const isAwaitingManager = currentStage === 'MANAGER_APPROVAL' || currentStage === 'QUOTATION';
   const isFinalApproved = currentStage === 'FULFILLMENT' || currentStage === 'APPROVED' || currentStage === 'ORDER_CREATED' || currentStage === 'COMPLETED';
 
   return (
@@ -121,16 +122,78 @@ export default function FinanceDashboard({ viewMode }) {
         <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
           <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-between border-b border-slate-100 pb-3">
             <span className="flex items-center">
-              <CheckCircle2 className={isFinalApproved ? "text-emerald-600 mr-2" : "text-amber-600 mr-2"} size={20} />
-              {isFinalApproved ? "Finance Approval & Margin Verification Complete" : "Pending Finance Approval & Margin Calculation"}
+              <CheckCircle2 className={isFinalApproved ? "text-emerald-600 mr-2" : isFinancePending ? "text-amber-600 mr-2" : "text-purple-600 mr-2"} size={20} />
+              {isFinalApproved ? "Finance Approval & Margin Verification Complete" : isFinancePending ? "Pending Finance Approval & Margin Calculation" : "Awaiting Sales Manager Discount Approval (Step 2)"}
             </span>
             <span className={`text-xs font-black px-2.5 py-1 rounded-md uppercase ${
-              isFinalApproved ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+              isFinalApproved ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+              isFinancePending ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+              'bg-purple-100 text-purple-800 border border-purple-300'
             }`}>
-              {isFinalApproved ? 'STATUS: DEAL FINAL LOCKED & APPROVED ✓' : 'ACTION REQUIRED: PENDING FINANCE SIGN-OFF'}
+              {isFinalApproved ? 'STATUS: DEAL FINAL LOCKED & APPROVED ✓' :
+               isFinancePending ? 'ACTION REQUIRED: PENDING FINANCE SIGN-OFF' :
+               'STAGE: PENDING MANAGER APPROVAL'}
             </span>
           </h3>
 
+          {/* STATE A: Awaiting Sales Manager Approval */}
+          {isAwaitingManager && (
+            <div className="p-5 bg-purple-50/80 border border-purple-300 rounded-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-200 pb-3">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-black text-slate-900 text-sm">DEAL-1042: Acme Industries</span>
+                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md uppercase">
+                      Awaiting Manager Review (Step 2)
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Sales Rep: <span className="font-bold text-slate-900">Rahul Sharma</span> • Requested Discount: <strong className="text-red-600">16%</strong> (Rep Authority: 10%)
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-lg font-black text-slate-950 block">₹44,86,330</span>
+                  <span className="text-xs font-extrabold text-emerald-700">Gross Margin: 26.0% (Profit: ₹11,66,446)</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-purple-200 text-xs text-slate-800 space-y-1.5 leading-relaxed">
+                <p className="font-extrabold text-purple-900 flex items-center">
+                  <AlertTriangle size={16} className="text-amber-600 mr-1.5" /> WORKFLOW STATUS:
+                </p>
+                <p>• Sales Rep submitted quote with 16% discount exception (exceeds Rep 10% limit).</p>
+                <p>• Quotation is currently pending in <strong>Sales Manager Approval Queue</strong>.</p>
+                <p>• Once Sales Manager approves, it will arrive in Finance Queue for final profit sign-off and factory release.</p>
+              </div>
+
+              <div className="flex flex-wrap justify-end items-center gap-3 pt-2 border-t border-purple-200">
+                <button
+                  onClick={async () => {
+                    try {
+                      await axios.post('/api/deals/DEAL-1042/approvals/manager', { action: 'APPROVE', comments: 'Approved under threshold / negotiated terms. Shared with Finance.' });
+                      showToast('Sales Manager Approved! Deal moved to Finance Approval Queue.', 'success');
+                      fetchFinanceData();
+                    } catch (e) {
+                      showToast(e.response?.data?.error || 'Action failed', 'error');
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center"
+                >
+                  <CheckCircle2 size={15} className="mr-1.5" /> Approve as Manager & Pass to Finance Queue →
+                </button>
+
+                <button
+                  onClick={() => navigate('/deals/DEAL-1042')}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center"
+                >
+                  Open Full Deal Room <ArrowRight size={14} className="ml-1.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STATE B: Pending Finance Approval */}
           {isFinancePending && (
             <div className="p-5 bg-amber-50/80 border border-amber-300 rounded-xl space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-3">
@@ -186,6 +249,7 @@ export default function FinanceDashboard({ viewMode }) {
             </div>
           )}
 
+          {/* STATE C: Final Finance Approval Complete */}
           {isFinalApproved && (
             <div className="p-5 bg-emerald-50/80 border border-emerald-300 rounded-xl space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200 pb-3">
