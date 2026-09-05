@@ -1,10 +1,59 @@
-import React, { useState } from 'react';
-import { DollarSign, RefreshCw, AlertTriangle, ArrowRight, ShieldCheck, CheckCircle2, Truck, Layers, BarChart3 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { DollarSign, RefreshCw, AlertTriangle, ArrowRight, ShieldCheck, CheckCircle2, Truck, Layers, BarChart3, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 export default function FinanceDashboard({ viewMode }) {
   const navigate = useNavigate();
+  const { showToast } = useAuth();
   const [prorationPreview, setProrationPreview] = useState(null);
+  const [dealData, setDealData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFinanceData();
+  }, []);
+
+  const fetchFinanceData = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get('/api/deals/DEAL-1042');
+      setDealData(res.data);
+    } catch (err) {
+      console.error('Failed to fetch finance deal data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFinanceApprove = async () => {
+    try {
+      const dealId = dealData?.deal?._id || 'DEAL-1042';
+      await axios.post(`/api/deals/${dealId}/approvals/finance`, {
+        action: 'APPROVE',
+        comments: 'Finance profit check passed (26.0% margin >= 20.0% floor). Final lock executed & routed to Factory.'
+      });
+      showToast('Finance Final Lock Approved! Order #ORD-2026 created & routed to Factory.', 'success');
+      fetchFinanceData();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Finance approval failed', 'error');
+    }
+  };
+
+  const handleFinanceReject = async () => {
+    try {
+      const dealId = dealData?.deal?._id || 'DEAL-1042';
+      await axios.post(`/api/deals/${dealId}/approvals/finance`, {
+        action: 'RETURN',
+        comments: 'Returned by Finance for margin re-negotiation.'
+      });
+      showToast('Quotation returned to Sales Rep for revision.', 'info');
+      fetchFinanceData();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Action failed', 'error');
+    }
+  };
 
   const handleProrationTest = () => {
     setProrationPreview({
@@ -16,6 +65,10 @@ export default function FinanceDashboard({ viewMode }) {
       proratedAmount: 6000
     });
   };
+
+  const currentStage = dealData?.deal?.stage || 'FINANCE_APPROVAL';
+  const isFinancePending = currentStage === 'FINANCE_APPROVAL';
+  const isFinalApproved = currentStage === 'FULFILLMENT' || currentStage === 'APPROVED' || currentStage === 'ORDER_CREATED' || currentStage === 'COMPLETED';
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
@@ -68,30 +121,99 @@ export default function FinanceDashboard({ viewMode }) {
         <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
           <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-between border-b border-slate-100 pb-3">
             <span className="flex items-center">
-              <CheckCircle2 className="text-emerald-600 mr-2" size={20} /> Final Approval by Margin Calculation
+              <CheckCircle2 className={isFinalApproved ? "text-emerald-600 mr-2" : "text-amber-600 mr-2"} size={20} />
+              {isFinalApproved ? "Finance Approval & Margin Verification Complete" : "Pending Finance Approval & Margin Calculation"}
             </span>
-            <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md uppercase">
-              Margin Verified: 26.0%
+            <span className={`text-xs font-black px-2.5 py-1 rounded-md uppercase ${
+              isFinalApproved ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+            }`}>
+              {isFinalApproved ? 'STATUS: DEAL FINAL LOCKED & APPROVED ✓' : 'ACTION REQUIRED: PENDING FINANCE SIGN-OFF'}
             </span>
           </h3>
 
-          <div className="p-4 bg-emerald-50/70 border border-emerald-300 rounded-xl space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200 pb-3">
-              <div>
-                <span className="font-black text-slate-900 text-sm">DEAL-1042: Acme Industries</span>
-                <p className="text-xs text-slate-600 mt-0.5">Total Value: ₹44,86,330 • Cost Price: ₹33,19,884 • Gross Margin: <strong className="text-emerald-700">26.0%</strong></p>
+          {isFinancePending && (
+            <div className="p-5 bg-amber-50/80 border border-amber-300 rounded-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-3">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-black text-slate-900 text-sm">DEAL-1042: Acme Industries</span>
+                    <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md uppercase">
+                      Sales Manager Approved ✓
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Sales Rep: <span className="font-bold text-slate-900">Rahul Sharma</span> • Customer: <span className="font-bold text-slate-900">Acme Industries (Gold Tier)</span>
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-lg font-black text-slate-950 block">₹44,86,330</span>
+                  <span className="text-xs font-extrabold text-emerald-700">Gross Margin: 26.0% (Profit: ₹11,66,446)</span>
+                </div>
               </div>
-              <button
-                onClick={() => navigate('/deals/DEAL-1042?tab=approvals')}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center"
-              >
-                <ShieldCheck size={16} className="mr-1.5" /> Final Approval with Finance (Lock & P&L Sign-off) →
-              </button>
+
+              <div className="bg-white p-4 rounded-xl border border-amber-200 text-xs text-slate-800 space-y-1.5 leading-relaxed">
+                <p className="font-extrabold text-amber-900 flex items-center">
+                  <AlertTriangle size={16} className="text-amber-600 mr-1.5" /> WHY DO I NEED TO ACT AS FINANCE?
+                </p>
+                <p>• Sales Manager approved quotation with 16% discount exception (above Rep 10% limit).</p>
+                <p>• Finance sign-off required to verify gross profit margin (<strong>26.0%</strong>) exceeds company floor (<strong>20.0%</strong>).</p>
+                <p>• Upon Finance Approval, deal status becomes <strong>DEAL LOCKED</strong>, Order <strong>ORD-2026</strong> is created, and routed to Factory to ship ASAP.</p>
+              </div>
+
+              <div className="flex flex-wrap justify-end items-center gap-3 pt-2 border-t border-amber-200">
+                <button
+                  onClick={handleFinanceReject}
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center"
+                >
+                  <X size={15} className="mr-1.5" /> Reject / Return for Revision
+                </button>
+
+                <button
+                  onClick={handleFinanceApprove}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center"
+                >
+                  <ShieldCheck size={16} className="mr-1.5" /> Approve (Execute Final Lock & Send to Factory)
+                </button>
+
+                <button
+                  onClick={() => navigate('/deals/DEAL-1042')}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center"
+                >
+                  Open Full Deal Room <ArrowRight size={14} className="ml-1.5" />
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-emerald-900 font-medium">
-              ✓ Finance calculation confirms deal profitability exceeds minimum required gross margin threshold (20.0%). Ready for inventory execution!
-            </p>
-          </div>
+          )}
+
+          {isFinalApproved && (
+            <div className="p-5 bg-emerald-50/80 border border-emerald-300 rounded-xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200 pb-3">
+                <div>
+                  <span className="font-black text-slate-900 text-sm">DEAL-1042: Acme Industries (Order #ORD-2026)</span>
+                  <p className="text-xs text-slate-600 mt-0.5">Total Value: ₹44,86,330 • Cost Price: ₹33,19,884 • Gross Margin: <strong className="text-emerald-700">26.0%</strong></p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => navigate('/factory')}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center"
+                  >
+                    <Truck size={15} className="mr-1.5" /> View Factory Fulfillment Status →
+                  </button>
+                  <button
+                    onClick={() => navigate('/deals/DEAL-1042')}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center"
+                  >
+                    Open Deal Workspace →
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-emerald-900 font-medium flex items-center">
+                <ShieldCheck size={16} className="text-emerald-600 mr-1.5 flex-shrink-0" />
+                Finance calculation confirmed deal profitability (26.0% margin). Final lock executed and Order #ORD-2026 passed to Factory for immediate fulfillment.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -125,3 +247,4 @@ export default function FinanceDashboard({ viewMode }) {
     </div>
   );
 }
+

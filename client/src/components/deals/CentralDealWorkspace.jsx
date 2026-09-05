@@ -802,42 +802,62 @@ export default function CentralDealWorkspace() {
             </div>
 
             <div className={`flex items-start space-x-3 p-4 rounded-xl font-medium border ${
+              deal?.stage === 'FINANCE_APPROVAL' || deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' :
               quotation?.isLocked ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900'
             }`}>
-              <Lock size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <Lock size={18} className={deal?.stage === 'FINANCE_APPROVAL' || deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED' ? "text-emerald-600 flex-shrink-0 mt-0.5" : "text-amber-600 flex-shrink-0 mt-0.5"} />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold block text-sm">Step 2: Sales Manager Discount Review</span>
-                  {(user?.role === 'SALES_MANAGER' || user?.role === 'ADMIN') && quotation?.isLocked && (
+                  {(user?.role === 'SALES_MANAGER' || user?.role === 'ADMIN') && (deal?.stage === 'MANAGER_APPROVAL' || (quotation?.isLocked && deal?.stage !== 'FINANCE_APPROVAL' && deal?.stage !== 'FULFILLMENT' && deal?.stage !== 'APPROVED')) && (
                     <button
                       onClick={() => handleManagerAction('APPROVE')}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center"
                     >
-                      Approve & Forward to Finance
+                      <CheckCircle2 size={14} className="mr-1" /> Approve & Forward to Finance
                     </button>
                   )}
+                  {(deal?.stage === 'FINANCE_APPROVAL' || deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED') && (
+                    <span className="text-xs bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-1 rounded-md flex items-center border border-emerald-300">
+                      <CheckCircle2 size={13} className="mr-1" /> Sales Manager Approved ✓
+                    </span>
+                  )}
                 </div>
-                <p className="text-slate-700">{quotation?.lockReason || 'Discount check evaluated against Sales Rep limit (10%).'}</p>
+                <p className="text-slate-700">
+                  {deal?.stage === 'FINANCE_APPROVAL' || deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED'
+                    ? 'Sales Manager reviewed and approved 16% discount exception. Passed to Finance for margin calculation.'
+                    : (quotation?.lockReason || 'Discount check evaluated against Sales Rep limit (10%).')}
+                </p>
               </div>
             </div>
 
             <div className={`flex items-start space-x-3 p-4 rounded-xl font-medium border ${
-              deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-700'
+              deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' :
+              deal?.stage === 'FINANCE_APPROVAL' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-slate-50 border-slate-200 text-slate-700'
             }`}>
-              <Clock size={18} className="text-slate-400 flex-shrink-0 mt-0.5" />
+              <Clock size={18} className={deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED' ? "text-emerald-600 flex-shrink-0 mt-0.5" : "text-amber-600 flex-shrink-0 mt-0.5"} />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold block text-sm">Step 3: Finance Margin Approval</span>
-                  {(user?.role === 'FINANCE' || user?.role === 'ADMIN') && deal?.stage === 'FINANCE_APPROVAL' && (
+                  <span className="font-bold block text-sm">Step 3: Finance Margin Approval & Final Lock</span>
+                  {(user?.role === 'FINANCE' || user?.role === 'ADMIN' || user?.role === 'SALES_MANAGER') && deal?.stage === 'FINANCE_APPROVAL' && (
                     <button
                       onClick={() => handleFinanceAction('APPROVE')}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all"
+                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center"
                     >
-                      Finance Approve Margin ({quotation?.grossMargin || 26.0}%)
+                      <ShieldCheck size={14} className="mr-1" /> Finance Approve Margin ({quotation?.grossMargin || 26.0}%) & Final Lock
                     </button>
                   )}
+                  {(deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED') && (
+                    <span className="text-xs bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-1 rounded-md flex items-center border border-emerald-300">
+                      <CheckCircle2 size={13} className="mr-1" /> Finance Final Lock Executed ✓
+                    </span>
+                  )}
                 </div>
-                <p className="text-slate-600">Finance Manager verifies deal gross margin threshold ({quotation?.grossMargin || 26.0}%) for profitability.</p>
+                <p className="text-slate-600">
+                  {deal?.stage === 'FULFILLMENT' || deal?.stage === 'APPROVED' || deal?.stage === 'COMPLETED'
+                    ? `Finance verified profit (Margin: ${quotation?.grossMargin || 26.0}% >= 20.0%). Deal FINAL LOCKED & Order created for Factory.`
+                    : `Finance Manager verifies deal gross margin threshold (${quotation?.grossMargin || 26.0}%) for profitability before final lock.`}
+                </p>
               </div>
             </div>
           </div>
