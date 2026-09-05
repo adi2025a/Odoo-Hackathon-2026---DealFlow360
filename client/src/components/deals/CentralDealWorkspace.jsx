@@ -86,7 +86,16 @@ export default function CentralDealWorkspace() {
   const fetchDealDetails = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/deals/${id || 'DEAL-1042'}`);
+      let targetId = id;
+      if (!targetId) {
+        try {
+          const dealsRes = await axios.get('/api/deals');
+          if (dealsRes.data && dealsRes.data.length > 0) {
+            targetId = dealsRes.data[0].dealNumber || dealsRes.data[0]._id;
+          }
+        } catch (e) {}
+      }
+      const res = await axios.get(`/api/deals/${targetId || 'DEAL-1042'}`);
       setDealData(res.data);
     } catch (err) {
       setDealData(getMockDealData());

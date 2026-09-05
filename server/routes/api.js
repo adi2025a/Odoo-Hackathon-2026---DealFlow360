@@ -392,14 +392,14 @@ router.get('/deals/:id', authenticateToken, async (req, res) => {
     const clientMessages = await Message.find({
       $or: [
         { conversation: clientConv._id },
-        { deal: deal._id }
+        { deal: deal._id, conversationType: { $ne: 'DEAL_INTERNAL' } }
       ]
     }).sort({ createdAt: 1 });
 
     const internalMessages = req.user.role === 'CLIENT' ? [] : await Message.find({
       $or: [
         { conversation: internalConv._id },
-        { deal: deal._id }
+        { deal: deal._id, conversationType: 'DEAL_INTERNAL' }
       ]
     }).sort({ createdAt: 1 });
 
@@ -1206,6 +1206,11 @@ router.post('/chat/conversations/:id/messages', authenticateToken, async (req, r
       attachments: attachments || []
     });
 
+    const msgPayload = {
+      ...msg.toObject(),
+      conversationType: conversation.conversationType || 'DEAL_CLIENT'
+    };
+
     const io = req.app.get('io');
     if (io) {
       const roomKeys = [
@@ -1216,11 +1221,11 @@ router.post('/chat/conversations/:id/messages', authenticateToken, async (req, r
       ].filter(Boolean);
 
       roomKeys.forEach(room => {
-        io.to(String(room)).emit('receive_message', msg);
+        io.to(String(room)).emit('receive_message', msgPayload);
       });
     }
 
-    return res.status(201).json(msg);
+    return res.status(201).json(msgPayload);
   } catch (err) {
     console.error('❌ Error sending message:', err);
     return res.status(500).json({ error: err.message });
