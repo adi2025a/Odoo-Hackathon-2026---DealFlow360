@@ -229,33 +229,37 @@ export default function SalesDashboard({ viewMode }) {
   const displayDeals = (deals && deals.length > 0) ? deals : defaultDeals;
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
       
       {/* ---------------------------------------------------------------- */}
       {/* VIEW 1: LEADS INBOX (Customer Requirement Queries) */}
       {/* ---------------------------------------------------------------- */}
       {currentView === 'leads' && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="glass-card rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300">
             <div>
-              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2.5 py-1 rounded-md">Sales Representative Inbox</span>
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight mt-2">Incoming Client Query Leads</h1>
+              <span className="text-xs font-black text-blue-600 uppercase tracking-wider bg-blue-50/90 px-3 py-1 rounded-full border border-blue-200/50">
+                Sales Representative Inbox
+              </span>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mt-2 gradient-text-blue">
+                Incoming Client Query Leads
+              </h1>
               <p className="text-xs text-slate-500 mt-1">Review new requirement queries submitted by customers from the Client Portal and prepare quotations.</p>
             </div>
             <button
               onClick={() => navigate('/client/query/new')}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center inline-flex"
+              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/20 hover:scale-102 transition-all flex items-center inline-flex"
             >
-              <Plus size={14} className="mr-1" /> Submit Query (Demo)
+              <Plus size={15} className="mr-1.5" /> Submit Query (Demo)
             </button>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
             {displayLeads.map(lead => (
-              <div key={lead._id || lead.leadNumber} className="bg-white border border-slate-200 rounded-2xl p-5 card-shadow hover:border-blue-300 transition-all space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div key={lead._id || lead.leadNumber} className="glass-card hover-lift hover-glow-blue rounded-2xl p-5 space-y-4 transition-all duration-300">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
                   <div className="flex items-center space-x-3">
-                    <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md">
+                    <span className="text-xs font-extrabold bg-blue-100/80 text-blue-900 px-3 py-1 rounded-lg border border-blue-200/60 shadow-xs">
                       {lead.leadNumber}
                     </span>
                     <h3 className="font-extrabold text-slate-900 text-base">{lead.company}</h3>

@@ -86,14 +86,31 @@ function MainLayout() {
     }
   };
 
+  const getRoleBgClass = () => {
+    switch (user?.role) {
+      case 'CLIENT':
+        return 'bg-role-client text-white';
+      case 'SALES_MANAGER':
+        return 'bg-role-manager';
+      case 'FINANCE':
+        return 'bg-role-finance';
+      case 'FACTORY':
+        return 'bg-role-factory text-white';
+      case 'ADMIN':
+        return 'bg-role-admin text-white';
+      default:
+        return 'bg-role-sales-rep';
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden">
+    <div className="flex h-screen bg-slate-900 text-slate-900 overflow-hidden font-sans">
       {/* Toast Notification Banner */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-xl border text-xs font-bold transition-all ${
-          toast.type === 'success' ? 'bg-emerald-600 text-white border-emerald-700' :
-          toast.type === 'error' ? 'bg-red-600 text-white border-red-700' :
-          'bg-slate-900 text-white border-slate-800'
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-2xl border text-xs font-bold transition-all animate-fade-in-down ${
+          toast.type === 'success' ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-900/30' :
+          toast.type === 'error' ? 'bg-red-600 text-white border-red-500 shadow-red-900/30' :
+          'bg-slate-900 text-white border-slate-700 shadow-slate-950/40'
         }`}>
           {toast.message}
         </div>
@@ -106,7 +123,7 @@ function MainLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar onTriggerScenario={handleTriggerScenario} />
 
-        <main className="flex-1 overflow-y-auto bg-slate-50">
+        <main className={`flex-1 overflow-y-auto transition-colors duration-500 ${getRoleBgClass()}`}>
           <Routes>
             <Route path="/" element={renderDashboardByRole()} />
             <Route path="/leads" element={<SalesDashboard viewMode="leads" />} />

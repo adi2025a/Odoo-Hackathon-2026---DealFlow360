@@ -77,14 +77,14 @@ export default function ManagerDashboard({ viewMode }) {
   ];
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
       {/* Header */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="glass-card rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300">
         <div>
-          <span className="text-xs font-bold bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full uppercase">
+          <span className="text-xs font-black bg-purple-100 text-purple-900 px-3 py-1 rounded-full uppercase border border-purple-200">
             Sales Manager Governance Panel
           </span>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 mt-2">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mt-2 gradient-text-purple">
             {viewMode === 'approvals' ? 'Manager Approval Queue & Discount Exceptions' :
              viewMode === 'deal-health' ? 'Deal Health Risk Alerts & Escalations' :
              'Sales Manager Dashboard & Risk Governance'}
@@ -97,25 +97,25 @@ export default function ManagerDashboard({ viewMode }) {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
+        <div className="glass-card hover-lift p-5 rounded-2xl space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Pending Approvals</span>
           <span className="text-2xl font-black text-amber-600 block">1 Quote</span>
           <span className="text-xs text-amber-700 font-bold">● Requires Discount Sign-off</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
+        <div className="glass-card hover-lift hover-glow-purple p-5 rounded-2xl space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Shared Rep Queries</span>
           <span className="text-2xl font-black text-purple-600 block">{displayLeads.length} Escalated</span>
           <span className="text-xs text-purple-700 font-bold">● Exceeds Rep Threshold</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
+        <div className="glass-card hover-lift hover-glow-emerald p-5 rounded-2xl space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Team Avg Margin</span>
           <span className="text-2xl font-black text-emerald-600 block">26.0%</span>
           <span className="text-xs text-emerald-700 font-bold">Above 20% Floor</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
+        <div className="glass-card hover-lift hover-glow-blue p-5 rounded-2xl space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Pipeline Value</span>
           <span className="text-2xl font-black text-slate-900 block">₹44,86,330</span>
           <span className="text-xs text-blue-600 font-bold">Acme Industries Project</span>
@@ -125,12 +125,12 @@ export default function ManagerDashboard({ viewMode }) {
       {/* ------------------------------------------------------------------ */}
       {/* SECTION: SHARED LEAD QUERIES FROM SALES REPS (Threshold Escalations) */}
       {/* ------------------------------------------------------------------ */}
-      <div className="bg-white border border-purple-200 rounded-2xl p-6 card-shadow space-y-4">
-        <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-between border-b border-slate-100 pb-3">
+      <div className="glass-card border-purple-200/80 rounded-2xl p-6 space-y-4">
+        <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-between border-b border-purple-100 pb-3">
           <span className="flex items-center text-slate-900">
-            <Share2 className="text-purple-600 mr-2" size={20} /> Shared Lead Queries & Threshold Escalations ({displayLeads.length})
+            <Share2 className="text-purple-600 mr-2 animate-bounce" size={20} /> Shared Lead Queries & Threshold Escalations ({displayLeads.length})
           </span>
-          <span className="text-xs bg-purple-100 text-purple-900 font-bold px-2.5 py-1 rounded-md uppercase">
+          <span className="text-xs bg-purple-100 text-purple-900 font-extrabold px-3 py-1 rounded-full uppercase border border-purple-200">
             Manager Review Needed
           </span>
         </h3>

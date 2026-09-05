@@ -18,14 +18,14 @@ export default function FinanceDashboard({ viewMode }) {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
       {/* Top Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="glass-card rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300">
         <div>
-          <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full uppercase">
+          <span className="text-xs font-black bg-emerald-100 text-emerald-900 px-3 py-1 rounded-full uppercase border border-emerald-200">
             Finance & Profitability Engine
           </span>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 mt-2">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mt-2 gradient-text-emerald">
             {viewMode === 'approvals' ? 'Final Finance Approval & Margin Calculation' :
              viewMode === 'inventory' ? 'Inventory & Stock Availability Review' :
              'Finance Cash Flow & Subscription Billing'}
@@ -38,25 +38,25 @@ export default function FinanceDashboard({ viewMode }) {
 
       {/* Finance KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
+        <div className="glass-card hover-lift hover-glow-emerald p-5 rounded-2xl space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Revenue</span>
           <span className="text-2xl font-black text-slate-900">₹44,86,330</span>
           <span className="text-xs text-emerald-600 font-bold">Gross Margin: 26.0%</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
+        <div className="glass-card hover-lift p-5 rounded-2xl space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Outstanding Invoices</span>
           <span className="text-2xl font-black text-amber-700">₹44,86,330</span>
           <span className="text-xs text-amber-600 font-semibold">1 Invoice Unpaid</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
+        <div className="glass-card hover-lift hover-glow-blue p-5 rounded-2xl space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Monthly Recurring ARR</span>
           <span className="text-2xl font-black text-slate-900">₹60,000</span>
           <span className="text-xs text-emerald-600 font-bold">1 Active Subscription</span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
+        <div className="glass-card hover-lift hover-glow-emerald p-5 rounded-2xl space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Gross Profit Margin</span>
           <span className="text-2xl font-black text-emerald-700">₹9,87,500</span>
           <span className="text-xs text-emerald-600 font-bold">● Above 20% Threshold</span>
