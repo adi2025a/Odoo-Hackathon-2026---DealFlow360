@@ -95,7 +95,7 @@ const DiscountRuleSchema = new Schema({
 
 // 7. QUOTATION SCHEMA
 const QuotationLineSchema = new Schema({
-  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  product: { type: Schema.Types.ObjectId, ref: 'Product' },
   productName: { type: String },
   sku: { type: String },
   category: { type: String },

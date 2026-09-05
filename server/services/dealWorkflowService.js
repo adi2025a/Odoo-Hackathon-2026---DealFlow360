@@ -1,7 +1,8 @@
+import mongoose from 'mongoose';
 import {
   Deal, Quotation, QuotationVersion, ApprovalRequest, Negotiation,
   Lead, User, Customer, Order, Fulfillment, Invoice, Payment,
-  Conversation, Message, AuditLog, Notification, Inventory
+  Conversation, Message, AuditLog, Notification, Inventory, Product
 } from '../models/Schemas.js';
 import { calculateQuotationMetricsAndRisk } from './discountAndRiskService.js';
 
@@ -195,9 +196,20 @@ export async function submitQuotation(dealId, quoteData, user) {
 
   let quote = await Quotation.findOne({ deal: deal._id });
   const repAuthority = user.discountAuthority || 10;
-  const customerTier = deal.customer?.tier || 'GOLD';
+  const defaultProduct = await Product.findOne({});
+  const cleanLines = (quoteData.lines || []).map(line => {
+    const cleanLine = { ...line };
+    if (!cleanLine.product || !mongoose.Types.ObjectId.isValid(cleanLine.product)) {
+      if (defaultProduct) {
+        cleanLine.product = defaultProduct._id;
+      } else {
+        delete cleanLine.product;
+      }
+    }
+    return cleanLine;
+  });
 
-  const metrics = calculateQuotationMetricsAndRisk(quoteData.lines || [], repAuthority, customerTier);
+  const metrics = calculateQuotationMetricsAndRisk(cleanLines, repAuthority, customerTier);
 
   if (!quote) {
     const qCount = await Quotation.countDocuments();
@@ -215,7 +227,7 @@ export async function submitQuotation(dealId, quoteData, user) {
       customer: deal.customer,
       salesRep: user._id || user.id,
       version: 1,
-      lines: quoteData.lines,
+      lines: cleanLines,
       ...metrics,
       status: metrics.isLocked ? 'PENDING_APPROVAL' : 'DRAFT',
       terms: quoteData.terms || 'Net 30 Days. Delivery within 14 business days.'
@@ -224,7 +236,7 @@ export async function submitQuotation(dealId, quoteData, user) {
     deal.quotation = quote._id;
   } else {
     quote.version = (quote.version || 1) + 1;
-    quote.lines = quoteData.lines;
+    quote.lines = cleanLines;
     Object.assign(quote, metrics);
     quote.status = metrics.isLocked ? 'PENDING_APPROVAL' : 'DRAFT';
     if (quoteData.terms) quote.terms = quoteData.terms;

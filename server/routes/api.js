@@ -491,10 +491,15 @@ router.post('/quotations', authenticateToken, async (req, res) => {
     // 3. Process Metrics & Line Items Safely
     const metrics = calculateQuotationMetricsAndRisk(lines, repAuthority, 'GOLD');
 
+    const defaultProduct = await Product.findOne({});
     const cleanLines = (metrics.lines || []).map(line => {
       const cleanLine = { ...line };
-      if (cleanLine.product && !mongoose.Types.ObjectId.isValid(cleanLine.product)) {
-        delete cleanLine.product;
+      if (!cleanLine.product || !mongoose.Types.ObjectId.isValid(cleanLine.product)) {
+        if (defaultProduct) {
+          cleanLine.product = defaultProduct._id;
+        } else {
+          delete cleanLine.product;
+        }
       }
       return cleanLine;
     });
