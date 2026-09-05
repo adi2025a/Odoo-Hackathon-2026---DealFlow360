@@ -1,0 +1,17 @@
+{
+  "name": "odoo-mern-project",
+  "version": "1.0.0",
+  "description": "MERN Stack Application setup with Vite and Express",
+  "private": true,
+  "scripts": {
+    "setup": "npm install && npm --prefix backend install && npm --prefix frontend install",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev": "concurrently -k -p \"[{name}]\" -c \"cyan.bold,pink.bold\" \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "start:backend": "npm --prefix backend start",
+    "build:frontend": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
