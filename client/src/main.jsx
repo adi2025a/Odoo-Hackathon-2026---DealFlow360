@@ -23,6 +23,11 @@ if (storedToken) {
 
 console.log('📡 DEALFLOW360 API Base URL:', axios.defaults.baseURL || '(Relative Path)');
 
+window.addEventListener('unhandledrejection', (event) => {
+  console.warn('Unhandled Promise Rejection caught:', event.reason);
+  event.preventDefault();
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
