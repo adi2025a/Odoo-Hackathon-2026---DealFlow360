@@ -426,6 +426,25 @@ const ProductRequestSchema = new Schema({
   adminComments: { type: String }
 }, { timestamps: true });
 
+// 25. STOCK RECONCILIATION SCHEMA
+const StockReconciliationSchema = new Schema({
+  reconciliationNumber: { type: String, required: true, unique: true },
+  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  productName: { type: String },
+  sku: { type: String },
+  warehouseName: { type: String, default: 'Main Warehouse' },
+  systemStock: { type: Number, required: true },
+  physicalStock: { type: Number, required: true },
+  variance: { type: Number, required: true },
+  unitCost: { type: Number, required: true },
+  varianceValue: { type: Number, required: true },
+  reason: { type: String },
+  requestedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  status: { type: String, enum: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'], default: 'PENDING' },
+  comments: { type: String }
+}, { timestamps: true });
+
 export const User = mongoose.model('User', UserSchema);
 export const Customer = mongoose.model('Customer', CustomerSchema);
 export const Lead = mongoose.model('Lead', LeadSchema);
@@ -450,3 +469,4 @@ export const Task = mongoose.model('Task', TaskSchema);
 export const Notification = mongoose.model('Notification', NotificationSchema);
 export const AuditLog = mongoose.model('AuditLog', AuditLogSchema);
 export const DealHealthAlert = mongoose.model('DealHealthAlert', DealHealthAlertSchema);
+export const StockReconciliation = mongoose.model('StockReconciliation', StockReconciliationSchema);

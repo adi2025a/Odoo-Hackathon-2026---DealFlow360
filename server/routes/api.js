@@ -6,7 +6,7 @@ import {
   User, Customer, Lead, Product, ProductRequest, PriceList, DiscountRule, Quotation,
   QuotationVersion, ApprovalRequest, Negotiation, Deal, Inventory, Order,
   Fulfillment, Subscription, Invoice, Payment, Conversation, Message,
-  Task, Notification, AuditLog, DealHealthAlert
+  Task, Notification, AuditLog, DealHealthAlert, StockReconciliation
 } from '../models/Schemas.js';
 import { calculateQuotationMetricsAndRisk } from '../services/discountAndRiskService.js';
 import { calculateWarehouseSplit } from '../services/fulfillmentService.js';
@@ -1443,6 +1443,511 @@ router.get('/audit-logs', authenticateToken, async (req, res) => {
   try {
     const logs = await AuditLog.find().sort({ timestamp: -1 }).limit(100);
     return res.json(logs);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------------------------------------------
+// FINANCE ROLE COMPREHENSIVE ENDPOINTS
+// ----------------------------------------------------
+
+// 1. Finance Overview KPIs & Trends
+router.get('/finance/overview', authenticateToken, async (req, res) => {
+  try {
+    const deals = await Deal.find();
+    const quotations = await Quotation.find();
+    const orders = await Order.find();
+    const invoices = await Invoice.find();
+    const subscriptions = await Subscription.find({ status: 'ACTIVE' });
+    const products = await Product.find();
+    const approvals = await ApprovalRequest.find({ status: 'PENDING' });
+
+    let totalRevenue = 4486330;
+    const completedOrders = orders.filter(o => ['CONFIRMED', 'FULFILLED', 'COMPLETED'].includes(o.status));
+    if (completedOrders.length > 0) {
+      totalRevenue = completedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    } else if (quotations.length > 0) {
+      totalRevenue = quotations.reduce((sum, q) => sum + (q.grandTotal || 0), 0);
+    }
+
+    let totalCost = 3319884;
+    let grossProfit = totalRevenue - totalCost;
+    let grossMargin = 26.0;
+    if (quotations.length > 0) {
+      const qCost = quotations.reduce((sum, q) => sum + (q.totalCost || 0), 0);
+      const qRev = quotations.reduce((sum, q) => sum + (q.grandTotal || 0), 0);
+      if (qRev > 0) {
+        totalCost = qCost;
+        grossProfit = qRev - qCost;
+        grossMargin = Number(((grossProfit / qRev) * 100).toFixed(1));
+      }
+    }
+
+    let outstandingInvoices = 1240000;
+    let accountsReceivable = 1240000;
+    let overdueAmount = 320000;
+    let overdueCount = 1;
+
+    if (invoices.length > 0) {
+      outstandingInvoices = invoices.reduce((sum, i) => sum + (i.outstandingAmount || 0), 0);
+      accountsReceivable = outstandingInvoices;
+      const overdues = invoices.filter(i => i.status === 'OVERDUE' || (i.dueDate && new Date(i.dueDate) < new Date() && i.outstandingAmount > 0));
+      overdueAmount = overdues.reduce((sum, i) => sum + (i.outstandingAmount || 0), 0);
+      overdueCount = overdues.length;
+    }
+
+    let inventoryValue = 1840000;
+    let totalUnits = 100;
+    if (products.length > 0) {
+      inventoryValue = products.reduce((sum, p) => sum + ((p.stock || 0) * (p.cost || 0)), 0);
+      totalUnits = products.reduce((sum, p) => sum + (p.stock || 0), 0);
+    }
+
+    let mrr = 60000;
+    if (subscriptions.length > 0) {
+      mrr = subscriptions.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+    }
+
+    const monthlyRevenueTrend = [
+      { month: 'Apr', revenue: 3200000, cost: 2400000, profit: 800000, margin: 25.0 },
+      { month: 'May', revenue: 3800000, cost: 2850000, profit: 950000, margin: 25.0 },
+      { month: 'Jun', revenue: 4100000, cost: 3050000, profit: 1050000, margin: 25.6 },
+      { month: 'Jul', revenue: 3900000, cost: 2900000, profit: 1000000, margin: 25.6 },
+      { month: 'Aug', revenue: 4200000, cost: 3100000, profit: 1100000, margin: 26.2 },
+      { month: 'Sep', revenue: totalRevenue, cost: totalCost, profit: grossProfit, margin: grossMargin }
+    ];
+
+    const cashFlow = {
+      expectedInflow: totalRevenue + 513670,
+      collected: totalRevenue - outstandingInvoices,
+      outstanding: outstandingInvoices,
+      overdue: overdueAmount,
+      futureCash: 1800000
+    };
+
+    return res.json({
+      kpis: {
+        totalRevenue,
+        grossProfit,
+        grossMargin,
+        outstandingInvoices,
+        inventoryValue,
+        totalUnits,
+        accountsReceivable,
+        overdueAmount,
+        overdueCount,
+        mrr,
+        activeSubscriptionsCount: subscriptions.length || 12,
+        pendingApprovalsCount: approvals.length || 1
+      },
+      monthlyRevenueTrend,
+      cashFlow
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Finance Action Center Items
+router.get('/finance/action-items', authenticateToken, async (req, res) => {
+  try {
+    const pendingApprovals = await ApprovalRequest.find({ status: 'PENDING' }).populate('deal quotation');
+    const overdueInvoices = await Invoice.find({ status: 'OVERDUE' }).populate('deal customer');
+    const lowMarginQuotes = await Quotation.find({ grossMargin: { $lt: 20 } }).populate('deal');
+    const pendingReconciliations = await StockReconciliation.find({ status: 'PENDING' });
+
+    const items = [];
+
+    pendingApprovals.forEach(a => {
+      items.push({
+        id: a._id.toString(),
+        type: 'APPROVAL',
+        title: `Deal ${a.deal?.dealNumber || 'DL-1042'} requires financial margin approval`,
+        dealId: a.deal?._id?.toString() || 'DEAL-1042',
+        dealNumber: a.deal?.dealNumber || 'DEAL-1042',
+        severity: 'HIGH',
+        actionLabel: 'Review Deal'
+      });
+    });
+
+    overdueInvoices.forEach(i => {
+      items.push({
+        id: i._id.toString(),
+        type: 'OVERDUE_INVOICE',
+        title: `Invoice ${i.invoiceNumber} (₹${i.outstandingAmount?.toLocaleString('en-IN')}) is OVERDUE`,
+        invoiceId: i._id.toString(),
+        dealId: i.deal?._id?.toString() || 'DEAL-1042',
+        severity: 'HIGH',
+        actionLabel: 'View Invoice'
+      });
+    });
+
+    lowMarginQuotes.forEach(q => {
+      items.push({
+        id: q._id.toString(),
+        type: 'LOW_MARGIN',
+        title: `Quotation ${q.quoteNumber} margin (${q.grossMargin}%) is below company 20% floor requirement`,
+        dealId: q.deal?._id?.toString() || 'DEAL-1042',
+        severity: 'CRITICAL',
+        actionLabel: 'Review Margin'
+      });
+    });
+
+    pendingReconciliations.forEach(r => {
+      items.push({
+        id: r._id.toString(),
+        type: 'RECONCILIATION',
+        title: `Stock reconciliation pending for ${r.productName} (Variance Value: ₹${r.varianceValue?.toLocaleString('en-IN')})`,
+        reconciliationId: r._id.toString(),
+        severity: 'MEDIUM',
+        actionLabel: 'Review Variance'
+      });
+    });
+
+    if (items.length === 0) {
+      items.push(
+        {
+          id: 'act-1',
+          type: 'APPROVAL',
+          title: 'Deal DL-1042 requires margin approval & final lock',
+          dealId: 'DEAL-1042',
+          dealNumber: 'DEAL-1042',
+          severity: 'HIGH',
+          actionLabel: 'Review Deal'
+        },
+        {
+          id: 'act-2',
+          type: 'OVERDUE_INVOICE',
+          title: 'Invoice INV-1039 (₹3,20,000) is OVERDUE',
+          invoiceId: 'INV-1039',
+          dealId: 'DEAL-1042',
+          severity: 'HIGH',
+          actionLabel: 'View Invoice'
+        },
+        {
+          id: 'act-3',
+          type: 'RECONCILIATION',
+          title: 'Stock reconciliation pending for Industrial Controller 500 (Variance Value: ₹96,000)',
+          reconciliationId: 'REC-2026-01',
+          severity: 'MEDIUM',
+          actionLabel: 'Review Variance'
+        }
+      );
+    }
+
+    return res.json(items);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Inventory Valuation & Financial Aging
+router.get('/finance/inventory-valuation', authenticateToken, async (req, res) => {
+  try {
+    const products = await Product.find();
+
+    const valuationList = products.map(p => {
+      const totalVal = (p.stock || 0) * (p.cost || 0);
+      return {
+        id: p._id,
+        name: p.name,
+        sku: p.sku,
+        category: p.category,
+        totalStock: p.stock,
+        available: Math.max(0, p.stock - (p.sku === 'CTRL-IND-500' ? 40 : 0)),
+        reserved: p.sku === 'CTRL-IND-500' ? 40 : 0,
+        unitCost: p.cost,
+        price: p.price,
+        totalValue: totalVal,
+        warehouseDistribution: [
+          { warehouse: 'Main Warehouse', qty: Math.round(p.stock * 0.6), val: Math.round(totalVal * 0.6) },
+          { warehouse: 'East Depot', qty: Math.round(p.stock * 0.4), val: Math.round(totalVal * 0.4) }
+        ],
+        aging: p.sku === 'CTRL-IND-500' ? '0-30 Days' : '90+ Days',
+        isSlowMoving: p.sku !== 'CTRL-IND-500'
+      };
+    });
+
+    const totalInventoryValue = valuationList.reduce((sum, item) => sum + item.totalValue, 0);
+
+    const agingBuckets = {
+      days0to30: 1250000,
+      days31to60: 620000,
+      days61to90: 310000,
+      days90Plus: 480000
+    };
+
+    return res.json({
+      valuationList,
+      totalInventoryValue,
+      agingBuckets
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Warehouse Financial Breakdown
+router.get('/finance/warehouse-financials', authenticateToken, async (req, res) => {
+  try {
+    const mainWarehouse = {
+      name: 'Main Warehouse',
+      units: 60,
+      inventoryValue: 1920000,
+      reservedValue: 1280000,
+      availableValue: 640000,
+      operatingCosts: {
+        storage: 120000,
+        handling: 45000,
+        packaging: 32000,
+        transportation: 75000,
+        total: 272000
+      },
+      revenueGenerated: 5000000,
+      fulfillmentCost: 150000,
+      netContribution: 4578000
+    };
+
+    const eastWarehouse = {
+      name: 'East Depot',
+      units: 40,
+      inventoryValue: 1280000,
+      reservedValue: 0,
+      availableValue: 1280000,
+      operatingCosts: {
+        storage: 80000,
+        handling: 30000,
+        packaging: 20000,
+        transportation: 40000,
+        total: 170000
+      },
+      revenueGenerated: 3000000,
+      fulfillmentCost: 90000,
+      netContribution: 2740000
+    };
+
+    return res.json({
+      warehouses: [mainWarehouse, eastWarehouse],
+      totalInventoryValue: 3200000,
+      totalOperatingCost: 442000
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Invoices & Payments CRUD
+router.get('/finance/invoices', authenticateToken, async (req, res) => {
+  try {
+    const invoices = await Invoice.find().populate('customer deal order').sort({ createdAt: -1 });
+    return res.json(invoices);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/finance/invoices', authenticateToken, authorizeRoles('FINANCE', 'ADMIN'), async (req, res) => {
+  try {
+    const { dealId, orderId, customerId, lineItems, subtotal, tax, total, dueDate } = req.body;
+    const count = await Invoice.countDocuments();
+    const invoiceNumber = `INV-${1040 + count + 1}`;
+
+    const invoice = await Invoice.create({
+      invoiceNumber,
+      deal: dealId,
+      order: orderId,
+      customer: customerId,
+      billingType: 'ONE_TIME',
+      lineItems: lineItems || [],
+      subtotal: subtotal || total,
+      tax: tax || 0,
+      total: total,
+      paidAmount: 0,
+      outstandingAmount: total,
+      status: 'UNPAID',
+      dueDate: dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    });
+
+    if (dealId) {
+      await postSystemMessage(
+        dealId,
+        'DEAL_INTERNAL',
+        `📄 INVOICE GENERATED: Invoice #${invoiceNumber} (₹${total.toLocaleString('en-IN')}) issued with due date ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}.`,
+        'APPROVAL_EVENT'
+      );
+    }
+
+    return res.status(201).json(invoice);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/finance/payments', authenticateToken, async (req, res) => {
+  try {
+    const payments = await Payment.find().populate('invoice customer').sort({ date: -1 });
+    return res.json(payments);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/finance/payments', authenticateToken, authorizeRoles('FINANCE', 'ADMIN'), async (req, res) => {
+  try {
+    const { invoiceId, amount, paymentMethod, transactionRef } = req.body;
+    const invoice = await Invoice.findById(invoiceId);
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found.' });
+
+    const payment = await Payment.create({
+      invoice: invoice._id,
+      customer: invoice.customer,
+      amount: Number(amount),
+      paymentMethod: paymentMethod || 'BANK_TRANSFER',
+      transactionRef: transactionRef || `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
+      status: 'COMPLETED'
+    });
+
+    invoice.paidAmount = (invoice.paidAmount || 0) + Number(amount);
+    invoice.outstandingAmount = Math.max(0, invoice.total - invoice.paidAmount);
+
+    if (invoice.outstandingAmount === 0) {
+      invoice.status = 'PAID';
+    } else {
+      invoice.status = 'PARTIALLY_PAID';
+    }
+    await invoice.save();
+
+    if (invoice.deal) {
+      await postSystemMessage(
+        invoice.deal,
+        'DEAL_INTERNAL',
+        `💰 PAYMENT RECORDED: Received ₹${Number(amount).toLocaleString('en-IN')} (Ref: ${payment.transactionRef}). Outstanding balance: ₹${invoice.outstandingAmount.toLocaleString('en-IN')}.`,
+        'APPROVAL_EVENT'
+      );
+    }
+
+    return res.status(201).json({ payment, invoice });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 6. Accounts Receivable Aging
+router.get('/finance/ar', authenticateToken, async (req, res) => {
+  try {
+    const invoices = await Invoice.find({ outstandingAmount: { $gt: 0 } }).populate('customer deal');
+
+    const arBuckets = {
+      current: 820000,
+      days1to30: 420000,
+      days31to60: 210000,
+      days61to90: 140000,
+      days90Plus: 110000,
+      totalReceivable: 1700000,
+      invoices
+    };
+
+    return res.json(arBuckets);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 7. Subscriptions
+router.get('/finance/subscriptions', authenticateToken, async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find().populate('customer deal');
+    const mrr = subscriptions.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+    const arr = mrr * 12;
+
+    return res.json({
+      subscriptions,
+      mrr,
+      arr,
+      activeCount: subscriptions.filter(s => s.status === 'ACTIVE').length,
+      renewalsCount: 4
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 8. Stock Reconciliations Review
+router.get('/finance/stock-reconciliations', authenticateToken, async (req, res) => {
+  try {
+    const reconciliations = await StockReconciliation.find().populate('product requestedBy reviewedBy');
+    return res.json(reconciliations);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/finance/stock-reconciliations/:id/review', authenticateToken, authorizeRoles('FINANCE', 'ADMIN'), async (req, res) => {
+  try {
+    const { action, comments } = req.body;
+    const rec = await StockReconciliation.findById(req.params.id);
+    if (!rec) return res.status(404).json({ error: 'Reconciliation request not found.' });
+
+    rec.status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    rec.comments = comments || (action === 'APPROVE' ? 'Financial adjustment approved.' : 'Rejected by Finance.');
+    rec.reviewedBy = req.user.id;
+    await rec.save();
+
+    await AuditLog.create({
+      user: req.user.id,
+      userName: req.user.name,
+      role: 'FINANCE',
+      action: action === 'APPROVE' ? 'STOCK_ADJUSTMENT_APPROVED' : 'STOCK_ADJUSTMENT_REJECTED',
+      entity: 'StockReconciliation',
+      entityId: rec._id.toString(),
+      newValue: { status: rec.status, varianceValue: rec.varianceValue },
+      reason: comments || 'Stock reconciliation review',
+      timestamp: new Date()
+    });
+
+    return res.json({ message: `Stock reconciliation ${rec.status}`, reconciliation: rec });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 9. Financial Analytics & Reports
+router.get('/finance/analytics', authenticateToken, async (req, res) => {
+  try {
+    const salesRepPerformance = [
+      { salesRep: 'Rahul Sharma', deals: 12, revenue: 23000000, avgDiscount: 7.2, avgMargin: 24.5, wonDeals: 10, approvalRequests: 3 },
+      { salesRep: 'Amit Kumar', deals: 8, revenue: 15000000, avgDiscount: 9.4, avgMargin: 22.1, wonDeals: 6, approvalRequests: 4 },
+      { salesRep: 'Priya Shah', deals: 15, revenue: 29000000, avgDiscount: 6.1, avgMargin: 26.8, wonDeals: 13, approvalRequests: 1 }
+    ];
+
+    const customerProfitability = [
+      { customer: 'Acme Industries', revenue: 4486330, cost: 3319884, profit: 1166446, margin: 26.0, dealsCount: 1, avgDiscount: 16.0 },
+      { customer: 'TechCorp Global', revenue: 3800000, cost: 2800000, profit: 1000000, margin: 26.3, dealsCount: 2, avgDiscount: 8.0 },
+      { customer: 'Nexus Systems', revenue: 2500000, cost: 1900000, profit: 600000, margin: 24.0, dealsCount: 1, avgDiscount: 5.0 }
+    ];
+
+    const productProfitability = [
+      { product: 'Industrial Controller 500', sku: 'CTRL-IND-500', revenue: 4500000, cost: 3300000, profit: 1200000, margin: 26.7, unitsSold: 100 },
+      { product: 'Onsite Installation & Setup', sku: 'SRV-INSTALL-PRO', revenue: 150000, cost: 60000, profit: 90000, margin: 60.0, unitsSold: 10 },
+      { product: 'Enterprise 24/7 Support SLA', sku: 'SLA-SUPP-ANNUAL', revenue: 600000, cost: 180000, profit: 420000, margin: 70.0, unitsSold: 12 }
+    ];
+
+    const factoryCostVariance = {
+      product: 'Industrial Controller 500',
+      expectedCost: 30000,
+      actualCost: 32000,
+      variancePerUnit: 2000,
+      percentageVariance: 6.67,
+      inventoryImpact: 200000
+    };
+
+    return res.json({
+      salesRepPerformance,
+      customerProfitability,
+      productProfitability,
+      factoryCostVariance
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

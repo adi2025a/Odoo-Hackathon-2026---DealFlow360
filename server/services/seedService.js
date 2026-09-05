@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import {
   User, Customer, Lead, Product, ProductRequest, PriceList, DiscountRule, Quotation,
   QuotationVersion, ApprovalRequest, Negotiation, Deal, Inventory, Order, Fulfillment, Subscription,
-  Invoice, Payment, Conversation, Message, Task, Notification, AuditLog, DealHealthAlert
+  Invoice, Payment, Conversation, Message, Task, Notification, AuditLog, DealHealthAlert, StockReconciliation
 } from '../models/Schemas.js';
 
 export async function resetAndSeedDatabase() {
@@ -32,7 +32,8 @@ export async function resetAndSeedDatabase() {
       Task.deleteMany({}),
       Notification.deleteMany({}),
       AuditLog.deleteMany({}),
-      DealHealthAlert.deleteMany({})
+      DealHealthAlert.deleteMany({}),
+      StockReconciliation.deleteMany({})
     ]);
 
     return await seedDatabase(true);
@@ -383,7 +384,7 @@ export async function seedDatabase(force = false) {
       entityId: deal._id.toString()
     });
 
-    // 11. Subscription
+    // 11. Subscriptions (12 active subscriptions = ₹60,000 MRR)
     await Subscription.create({
       subscriptionNumber: 'SUB-2026-88',
       customer: clientUser._id,
@@ -398,7 +399,79 @@ export async function seedDatabase(force = false) {
       currentPeriodEnd: new Date(Date.now() + 18 * 24 * 60 * 60 * 1000)
     });
 
-    // 12. Health Alert
+    for (let i = 1; i <= 11; i++) {
+      await Subscription.create({
+        subscriptionNumber: `SUB-2026-${10 + i}`,
+        customer: clientUser._id,
+        deal: deal._id,
+        planName: `Enterprise Maintenance Plan Level ${i}`,
+        billingCycle: 'MONTHLY',
+        unitPrice: 5000,
+        quantity: 1,
+        totalAmount: 5000,
+        status: 'ACTIVE',
+        currentPeriodStart: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        currentPeriodEnd: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000)
+      });
+    }
+
+    // 12. Invoices & Payments
+    const inv1 = await Invoice.create({
+      invoiceNumber: 'INV-1042',
+      customer: clientUser._id,
+      deal: deal._id,
+      billingType: 'ONE_TIME',
+      subtotal: 4515000,
+      tax: 682830,
+      total: 4486330,
+      paidAmount: 3246330,
+      outstandingAmount: 1240000,
+      status: 'PARTIALLY_PAID',
+      dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+    });
+
+    const inv2 = await Invoice.create({
+      invoiceNumber: 'INV-1039',
+      customer: clientUser._id,
+      deal: deal._id,
+      billingType: 'ONE_TIME',
+      subtotal: 300000,
+      tax: 20000,
+      total: 320000,
+      paidAmount: 0,
+      outstandingAmount: 320000,
+      status: 'OVERDUE',
+      dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+    });
+
+    await Payment.create({
+      invoice: inv1._id,
+      customer: clientUser._id,
+      amount: 3246330,
+      paymentMethod: 'BANK_TRANSFER',
+      transactionRef: 'TXN-BANK-994821',
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      status: 'COMPLETED'
+    });
+
+    // 13. Stock Reconciliation Request
+    await StockReconciliation.create({
+      reconciliationNumber: 'REC-2026-01',
+      product: products[0]._id,
+      productName: products[0].name,
+      sku: products[0].sku,
+      warehouseName: 'Main Warehouse',
+      systemStock: 100,
+      physicalStock: 97,
+      variance: -3,
+      unitCost: 32000,
+      varianceValue: 96000,
+      reason: 'Physical cycle count discrepancy during warehouse audit.',
+      requestedBy: factoryUser._id,
+      status: 'PENDING'
+    });
+
+    // 14. Health Alert
     await DealHealthAlert.create({
       deal: deal._id,
       alertType: 'DISCOUNT_ANOMALY',

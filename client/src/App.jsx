@@ -142,6 +142,14 @@ function MainLayout() {
             <Route path="/tasks" element={<SalesDashboard viewMode="tasks" />} />
             <Route path="/approvals" element={<ManagerDashboard viewMode="approvals" />} />
             <Route path="/finance/approvals" element={<FinanceDashboard viewMode="approvals" />} />
+            <Route path="/finance/margin" element={<FinanceDashboard viewMode="margin" />} />
+            <Route path="/finance/inventory-valuation" element={<FinanceDashboard viewMode="inventory-valuation" />} />
+            <Route path="/finance/warehouse-costs" element={<FinanceDashboard viewMode="warehouse-costs" />} />
+            <Route path="/finance/reconciliation" element={<FinanceDashboard viewMode="reconciliation" />} />
+            <Route path="/finance/invoices" element={<FinanceDashboard viewMode="invoices" />} />
+            <Route path="/finance/payments" element={<FinanceDashboard viewMode="payments" />} />
+            <Route path="/finance/ar" element={<FinanceDashboard viewMode="ar" />} />
+            <Route path="/finance/analytics" element={<FinanceDashboard viewMode="analytics" />} />
             <Route path="/inventory" element={<div className="p-6"><WarehouseSplitCard /></div>} />
             <Route path="/warehouse" element={<div className="p-6"><WarehouseSplitCard /></div>} />
             <Route path="/fulfillment" element={<div className="p-6"><WarehouseSplitCard /></div>} />

@@ -42,10 +42,15 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
 
   const financeNav = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Final approval by margin calc.', path: '/finance/approvals', icon: CheckCircle2 },
-    { name: 'Inventory', path: '/inventory', icon: Truck },
-    { name: 'Warehouse mang.', path: '/warehouse', icon: Layers },
-    { name: 'Report & analysis', path: '/reports', icon: BarChart3 }
+    { name: 'Financial Approvals', path: '/finance/approvals', icon: CheckCircle2, badge: 'Action Required' },
+    { name: 'Deal Profitability & Margin', path: '/finance/margin', icon: ShieldAlert },
+    { name: 'Inventory Valuation & Aging', path: '/finance/inventory-valuation', icon: Truck },
+    { name: 'Warehouse Costs & P&L', path: '/finance/warehouse-costs', icon: Layers },
+    { name: 'Stock Reconciliation Review', path: '/finance/reconciliation', icon: CheckSquare },
+    { name: 'Invoices & AR Aging', path: '/finance/invoices', icon: FileText },
+    { name: 'Payments & Cash Flow', path: '/finance/payments', icon: Building2 },
+    { name: 'Subscriptions & MRR', path: '/subscriptions', icon: RefreshCw },
+    { name: 'Financial Report Center', path: '/reports', icon: BarChart3 }
   ];
 
   const adminNav = [
