@@ -231,10 +231,37 @@ export default function ManagerDashboard({ viewMode }) {
               <p>• Discount anomaly: Rep historical avg is 7.2%, requested is 16.0% (+8.8% spike).</p>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-1">
+            <div className="flex flex-wrap justify-end items-center gap-3 pt-2 border-t border-amber-200">
+              <button
+                onClick={async () => {
+                  try {
+                    await axios.post('/api/deals/DEAL-1042/approvals/manager', { action: 'REJECT', comments: 'Manager rejected negotiation quote.' });
+                  } catch (e) {}
+                  alert('Quotation Rejected as per flowchart.');
+                  fetchEscalations();
+                }}
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center"
+              >
+                <X size={15} className="mr-1.5" /> Reject Quote
+              </button>
+
+              <button
+                onClick={async () => {
+                  try {
+                    await axios.post('/api/deals/DEAL-1042/approvals/manager', { action: 'APPROVE', comments: 'Approved under threshold / negotiated terms. Shared with Finance.' });
+                  } catch (e) {}
+                  alert('Quotation Approved! Shared with Finance for profit check & final locking.');
+                  fetchEscalations();
+                  navigate('/deals/DEAL-1042');
+                }}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center"
+              >
+                <CheckCircle2 size={15} className="mr-1.5" /> Approve (Under Threshold → Pass to Finance)
+              </button>
+
               <button
                 onClick={() => navigate('/deals/DEAL-1042')}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center"
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center"
               >
                 Open Full Deal Room <ArrowRight size={14} className="ml-1.5" />
               </button>

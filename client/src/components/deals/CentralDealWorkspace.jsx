@@ -284,23 +284,22 @@ export default function CentralDealWorkspace() {
   const isClient = user?.role === 'CLIENT';
   const isFactory = user?.role === 'FACTORY';
 
-  // 10-Stage Visual Stepper Definition
+  // 5-Stage Streamlined Flowchart Stepper Definition
   const STAGES = [
-    { key: 'NEW', label: '1. Query' },
-    { key: 'REQUIREMENT', label: '2. Requirement' },
-    { key: 'QUOTATION', label: '3. Quotation' },
-    { key: 'MANAGER_APPROVAL', label: '4. Manager' },
-    { key: 'FINANCE_APPROVAL', label: '5. Finance' },
-    { key: 'CLIENT_NEGOTIATION', label: '6. Client' },
-    { key: 'ORDER_CREATED', label: '7. Order' },
-    { key: 'FULFILLMENT', label: '8. Factory' },
-    { key: 'BILLING', label: '9. Billing' },
-    { key: 'COMPLETED', label: '10. Completed' }
+    { key: 'CLIENT_QUERY', label: '1. Client Query' },
+    { key: 'QUOTE_SENT', label: '2. Sent Quote' },
+    { key: 'MANAGER_APPROVAL', label: '3. Manager Review' },
+    { key: 'FINANCE_APPROVAL', label: '4. Finance Review' },
+    { key: 'FINAL_LOCK', label: '5. Final Lock' }
   ];
 
-  const currentStageIndex = STAGES.findIndex(s => s.key === deal?.stage) !== -1
-    ? STAGES.findIndex(s => s.key === deal?.stage)
-    : deal?.stage === 'APPROVED' ? 5 : deal?.stage === 'CLIENT_CONFIRMED' ? 6 : 2;
+  const currentStageIndex =
+    deal?.status === 'CANCELLED' || deal?.status === 'LOST' || deal?.stage === 'REJECTED' ? 2 :
+    deal?.status === 'LOCKED' && deal?.stage === 'FULFILLMENT' ? 4 :
+    deal?.stage === 'FINANCE_APPROVAL' ? 3 :
+    deal?.stage === 'MANAGER_APPROVAL' || deal?.stage === 'CLIENT_NEGOTIATION' ? 2 :
+    deal?.stage === 'QUOTE_SENT' || deal?.stage === 'QUOTATION' ? 1 :
+    0;
 
   // Role-appropriate Tab list
   const tabs = [
