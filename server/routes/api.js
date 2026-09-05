@@ -315,6 +315,145 @@ router.post('/leads/:id/convert', authenticateToken, async (req, res) => {
   }
 });
 
+// Share / Escalate Lead Query to Sales Manager
+router.post('/leads/:id/share', authenticateToken, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    let lead = await Lead.findById(req.params.id);
+    if (!lead) {
+      lead = await Lead.findOne({ leadNumber: req.params.id });
+    }
+    if (!lead) return res.status(404).json({ error: 'Lead not found.' });
+
+    const managerUser = await User.findOne({ role: 'SALES_MANAGER' });
+
+    lead.isEscalated = true;
+    lead.escalationReason = reason || 'Client requirement exceeds Sales Rep threshold limit.';
+    lead.escalatedBy = req.user.id;
+    if (managerUser) lead.assignedManager = managerUser._id;
+    await lead.save();
+
+    let deal = await createDealFromLead(lead._id, req.user);
+    if (deal) {
+      deal.isEscalated = true;
+      deal.escalationReason = reason || 'Client requirement exceeds Sales Rep threshold limit.';
+      deal.escalatedBy = req.user.id;
+      if (managerUser) deal.manager = managerUser._id;
+      deal.stage = 'MANAGER_APPROVAL';
+      await deal.save();
+
+      let internalConv = await Conversation.findOne({ deal: deal._id, conversationType: 'DEAL_INTERNAL' });
+      if (!internalConv) {
+        internalConv = await Conversation.create({
+          deal: deal._id,
+          conversationType: 'DEAL_INTERNAL',
+          participants: [req.user.id, managerUser?._id].filter(Boolean)
+        });
+      }
+
+      const sysMsg = await Message.create({
+        conversation: internalConv._id,
+        senderRole: 'SYSTEM',
+        text: `⚠️ ESCALATED TO SALES MANAGER: Sales Rep ${req.user.name || 'Rep'} shared this lead query with Sales Manager (${managerUser?.name || 'Manager'}). Reason: "${lead.escalationReason}"`,
+        conversationType: 'DEAL_INTERNAL'
+      });
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(deal.dealNumber).emit('new_message', sysMsg);
+        io.emit('business_event', { type: 'LEAD_ESCALATED', lead, deal });
+      }
+    }
+
+    if (managerUser) {
+      await Notification.create({
+        user: managerUser._id,
+        role: 'SALES_MANAGER',
+        title: `Lead Query Shared: ${lead.leadNumber}`,
+        message: `Sales Rep ${req.user.name || 'Rep'} shared lead from ${lead.company} (${lead.product || 'Query'}). Reason: ${lead.escalationReason}`,
+        type: 'ESCALATION',
+        entityId: deal ? deal._id.toString() : lead._id.toString()
+      });
+    }
+
+    return res.json({ message: 'Lead requirement successfully shared with Sales Manager for review & custom quotation.', lead, deal });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Escalate Deal directly to Manager
+router.post('/deals/:id/escalate', authenticateToken, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    let deal = await Deal.findById(req.params.id);
+    if (!deal) {
+      deal = await Deal.findOne({ dealNumber: req.params.id });
+    }
+    if (!deal) return res.status(404).json({ error: 'Deal not found.' });
+
+    const managerUser = await User.findOne({ role: 'SALES_MANAGER' });
+
+    deal.isEscalated = true;
+    deal.escalationReason = reason || 'Requirement exceeds Sales Rep threshold authority.';
+    deal.escalatedBy = req.user.id;
+    if (managerUser) deal.manager = managerUser._id;
+    deal.stage = 'MANAGER_APPROVAL';
+    await deal.save();
+
+    let internalConv = await Conversation.findOne({ deal: deal._id, conversationType: 'DEAL_INTERNAL' });
+    if (!internalConv) {
+      internalConv = await Conversation.create({
+        deal: deal._id,
+        conversationType: 'DEAL_INTERNAL',
+        participants: [req.user.id, managerUser?._id].filter(Boolean)
+      });
+    }
+
+    const sysMsg = await Message.create({
+      conversation: internalConv._id,
+      senderRole: 'SYSTEM',
+      text: `⚠️ ESCALATED TO SALES MANAGER: Sales Rep ${req.user.name || 'Rep'} shared deal ${deal.dealNumber} with Sales Manager (${managerUser?.name || 'Manager'}). Reason: "${deal.escalationReason}"`,
+      conversationType: 'DEAL_INTERNAL'
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(deal.dealNumber).emit('new_message', sysMsg);
+      io.emit('business_event', { type: 'DEAL_ESCALATED', deal });
+    }
+
+    if (managerUser) {
+      await Notification.create({
+        user: managerUser._id,
+        role: 'SALES_MANAGER',
+        title: `Deal Shared for Review: ${deal.dealNumber}`,
+        message: `Sales Rep ${req.user.name || 'Rep'} escalated deal ${deal.dealNumber}. Reason: ${deal.escalationReason}`,
+        type: 'ESCALATION',
+        entityId: deal._id.toString()
+      });
+    }
+
+    return res.json({ message: 'Deal successfully escalated to Sales Manager.', deal });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Manager Escalations list
+router.get('/manager/escalations', authenticateToken, async (req, res) => {
+  try {
+    const leads = await Lead.find({ isEscalated: true }).sort({ updatedAt: -1 });
+    const deals = await Deal.find({ isEscalated: true })
+      .populate('salesRep', 'name email')
+      .populate('customer', 'name company email')
+      .sort({ updatedAt: -1 });
+    return res.json({ leads, deals });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // ----------------------------------------------------
 // 3. DEALS PIPELINE & CENTRAL WORKSPACE
 // ----------------------------------------------------

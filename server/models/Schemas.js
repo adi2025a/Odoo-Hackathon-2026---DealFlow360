@@ -50,7 +50,11 @@ const LeadSchema = new Schema({
   },
   priority: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH'], default: 'MEDIUM' },
   assignedRep: { type: Schema.Types.ObjectId, ref: 'User' },
-  dealId: { type: Schema.Types.ObjectId, ref: 'Deal' }
+  dealId: { type: Schema.Types.ObjectId, ref: 'Deal' },
+  isEscalated: { type: Boolean, default: false },
+  escalationReason: { type: String },
+  escalatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  assignedManager: { type: Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
 // 4. PRODUCT SCHEMA
@@ -220,6 +224,9 @@ const DealSchema = new Schema({
   riskScore: { type: Number, default: 0 },
   riskLevel: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], default: 'LOW' },
   currentApprovalLevel: { type: String, enum: ['NONE', 'MANAGER', 'FINANCE'], default: 'NONE' },
+  isEscalated: { type: Boolean, default: false },
+  escalationReason: { type: String },
+  escalatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   quotation: { type: Schema.Types.ObjectId, ref: 'Quotation' },
   order: { type: Schema.Types.ObjectId, ref: 'Order' },
   clientConversation: { type: Schema.Types.ObjectId, ref: 'Conversation' },

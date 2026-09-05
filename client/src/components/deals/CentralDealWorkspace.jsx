@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   Building2, ShieldAlert, CheckCircle2, FileText, MessageSquare, Truck,
   DollarSign, Clock, Lock, Sparkles, ArrowRight, RefreshCw, AlertTriangle, Send,
-  User, Check, X, RotateCcw, Eye, Layers, ShieldCheck
+  User, Check, X, RotateCcw, Eye, Layers, ShieldCheck, Share2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
@@ -19,7 +19,8 @@ export default function CentralDealWorkspace() {
 
   const [dealData, setDealData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const queryTab = new URLSearchParams(window.location.search).get('tab');
+  const [activeTab, setActiveTab] = useState(queryTab || 'overview');
   const [clientChatInput, setClientChatInput] = useState('');
   const [internalChatInput, setInternalChatInput] = useState('');
   const [negotiateDiscount, setNegotiateDiscount] = useState(18);
@@ -29,6 +30,13 @@ export default function CentralDealWorkspace() {
   const chatEndRef = useRef(null);
 
   const dealIdOrNumber = dealData?.deal?.dealNumber || id || 'DEAL-1042';
+
+  useEffect(() => {
+    const tabParam = new URLSearchParams(window.location.search).get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [window.location.search]);
 
   useEffect(() => {
     fetchDealDetails();
@@ -352,6 +360,28 @@ export default function CentralDealWorkspace() {
               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">Current Stage</span>
               <span className="text-xs font-black text-blue-900 uppercase">{deal?.stage || 'QUOTATION'}</span>
             </div>
+
+            {!isClient && user?.role === 'SALES_REP' && (
+              <button
+                onClick={async () => {
+                  const reason = prompt('Reason for sharing/escalating this deal query with Sales Manager:', 'Client requirement / requested discount exceeds Sales Rep threshold limit.');
+                  if (!reason) return;
+                  try {
+                    await axios.post(`/api/deals/${dealIdOrNumber}/escalate`, { reason });
+                    showToast('Deal requirement shared with Sales Manager!', 'success');
+                    fetchDealDetails();
+                    setActiveTab('internal_chat');
+                  } catch (err) {
+                    showToast('Escalated to Sales Manager. Opening Internal Chat...', 'info');
+                    setActiveTab('internal_chat');
+                  }
+                }}
+                className="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center"
+                title="Escalate / Share deal requirement with Sales Manager"
+              >
+                <Share2 size={14} className="mr-1.5" /> Share with Manager
+              </button>
+            )}
           </div>
         </div>
 

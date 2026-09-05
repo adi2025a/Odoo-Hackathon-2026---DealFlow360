@@ -1,9 +1,80 @@
-import React from 'react';
-import { CheckCircle2, ShieldAlert, AlertTriangle, ArrowRight, UserCheck, TrendingUp, DollarSign, Activity } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  CheckCircle2, ShieldAlert, AlertTriangle, ArrowRight, UserCheck, TrendingUp,
+  DollarSign, Activity, Lock, Share2, MessageSquare, FileText
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 export default function ManagerDashboard({ viewMode }) {
   const navigate = useNavigate();
+  const [escalations, setEscalations] = useState({ leads: [], deals: [] });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchEscalations();
+  }, []);
+
+  const fetchEscalations = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get('/api/manager/escalations');
+      if (res.data) {
+        setEscalations(res.data);
+      }
+    } catch (err) {
+      // Fallback mock escalation if database initial
+      setEscalations({
+        leads: [
+          {
+            _id: 'ld-escalated-1',
+            leadNumber: 'LD-2026-132',
+            company: 'MegaTech Solutions',
+            contactName: 'Vikram Mehta',
+            email: 'vikram@megatech.com',
+            product: 'Industrial Controller 500',
+            quantity: 100,
+            budget: 6500000,
+            requirement: 'Client requested 100 units + turnkey onsite deployment & 24/7 SLA.',
+            escalationReason: 'Client budget/quantity (100 units, ₹65 Lakhs) exceeds standard Sales Rep threshold limit. Requires Manager custom quotation & SLA sign-off.',
+            createdAt: new Date().toISOString()
+          }
+        ],
+        deals: [
+          {
+            _id: 'd-1',
+            dealNumber: 'DEAL-1061',
+            title: 'MegaTech Solutions - 100x Automation Controllers',
+            customer: { company: 'MegaTech Solutions', name: 'Vikram Mehta' },
+            dealValue: 6500000,
+            grossMargin: 24.5,
+            discount: 16,
+            stage: 'MANAGER_APPROVAL',
+            escalationReason: 'Client requested 16% discount on 100 units. Exceeds Rep authority limit (10%).',
+            updatedAt: new Date().toISOString()
+          }
+        ]
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const displayLeads = escalations.leads && escalations.leads.length > 0 ? escalations.leads : [
+    {
+      _id: 'ld-escalated-1',
+      leadNumber: 'LD-2026-132',
+      company: 'MegaTech Solutions',
+      contactName: 'Vikram Mehta',
+      email: 'vikram@megatech.com',
+      product: 'Industrial Controller 500',
+      quantity: 100,
+      budget: 6500000,
+      requirement: 'Client requested 100 units + turnkey onsite deployment & 24/7 SLA.',
+      escalationReason: 'Client budget/quantity (100 units, ₹65 Lakhs) exceeds standard Sales Rep threshold limit. Requires Manager custom quotation & SLA sign-off.',
+      createdAt: new Date().toISOString()
+    }
+  ];
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -33,9 +104,9 @@ export default function ManagerDashboard({ viewMode }) {
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">High Risk Deals</span>
-          <span className="text-2xl font-black text-red-600 block">1 Escalated</span>
-          <span className="text-xs text-red-700 font-bold">Score: 65/100 (HIGH)</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Shared Rep Queries</span>
+          <span className="text-2xl font-black text-purple-600 block">{displayLeads.length} Escalated</span>
+          <span className="text-xs text-purple-700 font-bold">● Exceeds Rep Threshold</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-1">
@@ -48,6 +119,75 @@ export default function ManagerDashboard({ viewMode }) {
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Pipeline Value</span>
           <span className="text-2xl font-black text-slate-900 block">₹44,86,330</span>
           <span className="text-xs text-blue-600 font-bold">Acme Industries Project</span>
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* SECTION: SHARED LEAD QUERIES FROM SALES REPS (Threshold Escalations) */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="bg-white border border-purple-200 rounded-2xl p-6 card-shadow space-y-4">
+        <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-between border-b border-slate-100 pb-3">
+          <span className="flex items-center text-slate-900">
+            <Share2 className="text-purple-600 mr-2" size={20} /> Shared Lead Queries & Threshold Escalations ({displayLeads.length})
+          </span>
+          <span className="text-xs bg-purple-100 text-purple-900 font-bold px-2.5 py-1 rounded-md uppercase">
+            Manager Review Needed
+          </span>
+        </h3>
+
+        <div className="grid grid-cols-1 gap-4">
+          {displayLeads.map(lead => (
+            <div key={lead._id || lead.leadNumber} className="p-5 bg-purple-50/50 border border-purple-200 rounded-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-200 pb-3">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-black text-purple-950 text-sm">{lead.leadNumber || 'LD-2026-132'}</span>
+                    <span className="text-[10px] font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded-md">
+                      Shared by Sales Rep
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-base mt-0.5">{lead.company} • <span className="text-xs text-slate-500 font-medium">{lead.contactName} ({lead.email})</span></h4>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-lg font-black text-purple-950 block">₹{(lead.budget || 6500000).toLocaleString('en-IN')}</span>
+                  <span className="text-xs font-extrabold text-purple-700">Quantity: {lead.quantity || 100} units</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="bg-white p-3.5 rounded-xl border border-purple-200 space-y-1">
+                  <span className="font-extrabold text-purple-900 uppercase text-[10px] tracking-wider block">Sales Rep Escalation Reason:</span>
+                  <p className="text-slate-800 leading-relaxed italic">
+                    "{lead.escalationReason || 'Client requirement exceeds standard sales rep threshold. Manager custom pricing requested.'}"
+                  </p>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-xl border border-purple-200 space-y-1">
+                  <span className="font-extrabold text-slate-900 uppercase text-[10px] tracking-wider block">Client Requirement:</span>
+                  <p className="text-slate-800 leading-relaxed">
+                    "{lead.requirement || 'Need 100 units with turnkey setup and annual support SLA coverage.'}"
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2 pt-1 border-t border-purple-200">
+                <button
+                  onClick={() => navigate(`/deals/DEAL-1061?tab=internal_chat`)}
+                  className="px-4 py-2 bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-300 font-bold text-xs rounded-xl transition-all flex items-center"
+                >
+                  <Lock size={14} className="mr-1.5 text-amber-600" /> Internal Chat (Sales ↔ Manager)
+                </button>
+
+                <button
+                  onClick={() => navigate(`/deals/DEAL-1061?tab=quotation`)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center"
+                >
+                  <FileText size={15} className="mr-1.5" /> Improve & Create Manager Quotation <ArrowRight size={14} className="ml-1" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

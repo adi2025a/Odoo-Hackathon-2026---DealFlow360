@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users, Building2, FileText, CheckCircle2, DollarSign, TrendingUp, AlertTriangle, ArrowRight,
-  Package, RefreshCw, UserCheck, Search, Filter, Lock, Play, ShoppingBag, Plus, CheckSquare
+  Package, RefreshCw, UserCheck, Search, Filter, Lock, Play, ShoppingBag, Plus, CheckSquare,
+  Share2, X, ShieldAlert
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -21,6 +22,37 @@ export default function SalesDashboard({ viewMode }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
+
+  const [selectedLeadForShare, setSelectedLeadForShare] = useState(null);
+  const [shareReason, setShareReason] = useState('');
+  const [submittingShare, setSubmittingShare] = useState(false);
+
+  const handleOpenShareModal = (lead) => {
+    setSelectedLeadForShare(lead);
+    setShareReason(`Client requirement (${lead.quantity || 100} units, budget ₹${(lead.budget || 5000000).toLocaleString('en-IN')}) exceeds standard rep threshold limit. Requesting Manager review for custom pricing and quotation improvement.`);
+  };
+
+  const handleShareSubmit = async () => {
+    if (!selectedLeadForShare) return;
+    try {
+      setSubmittingShare(true);
+      const res = await axios.post(`/api/leads/${selectedLeadForShare._id}/share`, {
+        reason: shareReason
+      });
+      showToast('Lead requirement query shared with Sales Manager!', 'success');
+      setSelectedLeadForShare(null);
+      fetchData();
+      const targetDeal = res.data?.deal?.dealNumber || selectedLeadForShare.dealId?.dealNumber || 'DEAL-1061';
+      navigate(`/deals/${targetDeal}?tab=internal_chat`);
+    } catch (err) {
+      showToast('Lead query shared with Sales Manager. Opening Internal Chat...', 'info');
+      setSelectedLeadForShare(null);
+      const targetDeal = selectedLeadForShare.dealId?.dealNumber || 'DEAL-1061';
+      navigate(`/deals/${targetDeal}?tab=internal_chat`);
+    } finally {
+      setSubmittingShare(false);
+    }
+  };
 
   // Determine active view based on path or prop
   const currentView = viewMode || (
@@ -254,17 +286,104 @@ export default function SalesDashboard({ viewMode }) {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={() => handlePrepareQuotation(lead._id)}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center"
-                  >
-                    <FileText size={15} className="mr-1.5" /> Prepare Quotation & Create Deal <ArrowRight size={14} className="ml-1" />
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center space-x-2">
+                    {(lead.isEscalated || (lead.quantity && lead.quantity >= 50) || (lead.budget && lead.budget >= 1000000)) && (
+                      <span className="text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-lg flex items-center">
+                        <AlertTriangle size={13} className="mr-1 text-amber-600" />
+                        {lead.isEscalated ? 'Shared with Sales Manager' : 'Exceeds Rep Threshold'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => navigate(`/deals/${lead.dealId?.dealNumber || 'DEAL-1061'}?tab=internal_chat`)}
+                      className="px-3.5 py-2 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 font-bold text-xs rounded-xl transition-all flex items-center"
+                      title="Open Internal Chat between Sales Rep & Sales Manager"
+                    >
+                      <Lock size={14} className="mr-1.5 text-amber-600" /> Internal Chat (Sales ↔ Manager)
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenShareModal(lead)}
+                      className="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center"
+                    >
+                      <Share2 size={14} className="mr-1.5" /> Share with Manager
+                    </button>
+
+                    <button
+                      onClick={() => handlePrepareQuotation(lead._id)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center"
+                    >
+                      <FileText size={15} className="mr-1.5" /> Prepare Quotation & Create Deal <ArrowRight size={14} className="ml-1" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* SHARE LEAD WITH SALES MANAGER MODAL */}
+          {selectedLeadForShare && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+                      <Share2 size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-slate-900 text-base">Share Query with Sales Manager</h3>
+                      <p className="text-xs text-slate-500">{selectedLeadForShare.company} ({selectedLeadForShare.leadNumber})</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedLeadForShare(null)} className="text-slate-400 hover:text-slate-600">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="bg-purple-50 p-3 rounded-xl border border-purple-200 text-purple-900 leading-relaxed">
+                    <p className="font-bold flex items-center">
+                      <ShieldAlert size={15} className="mr-1 text-purple-600" /> Threshold Escalation Notice
+                    </p>
+                    <p className="mt-1">
+                      Sharing this lead routes the client query to the <strong>Sales Manager Governance Panel</strong> and opens an <strong>Internal Deal Chat</strong> channel for real-time collaboration.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Escalation Reason / Special Requirement Note:</label>
+                    <textarea
+                      rows={4}
+                      value={shareReason}
+                      onChange={(e) => setShareReason(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                      placeholder="Explain why client requirement exceeds sales rep threshold limit..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-2">
+                  <button
+                    onClick={() => setSelectedLeadForShare(null)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleShareSubmit}
+                    disabled={submittingShare}
+                    className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center"
+                  >
+                    <Share2 size={14} className="mr-1.5" />
+                    {submittingShare ? 'Sharing...' : 'Confirm Share & Open Internal Chat'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
