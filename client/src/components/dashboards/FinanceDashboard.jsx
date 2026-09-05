@@ -82,10 +82,10 @@ export default function FinanceDashboard({ viewMode }) {
                 <p className="text-xs text-slate-600 mt-0.5">Total Value: ₹44,86,330 • Cost Price: ₹33,19,884 • Gross Margin: <strong className="text-emerald-700">26.0%</strong></p>
               </div>
               <button
-                onClick={() => navigate('/deals/DEAL-1042')}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center"
+                onClick={() => navigate('/deals/DEAL-1042?tab=approvals')}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center"
               >
-                Execute Finance Sign-off →
+                <ShieldCheck size={16} className="mr-1.5" /> Final Approval with Finance (Lock & P&L Sign-off) →
               </button>
             </div>
             <p className="text-xs text-emerald-900 font-medium">

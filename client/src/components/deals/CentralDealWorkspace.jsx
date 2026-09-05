@@ -423,16 +423,27 @@ export default function CentralDealWorkspace() {
 
             {/* Approval Action Buttons for Manager & Finance */}
             {!isClient && (user?.role === 'SALES_MANAGER' || user?.role === 'FINANCE' || user?.role === 'ADMIN') && (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => user?.role === 'FINANCE' ? handleFinanceAction('APPROVE') : handleManagerAction('APPROVE')}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all flex items-center"
-                >
-                  <CheckCircle2 size={14} className="mr-1" /> Approve Quotation
-                </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {user?.role === 'FINANCE' || deal?.stage === 'FINANCE_APPROVAL' ? (
+                  <button
+                    onClick={() => handleFinanceAction('APPROVE')}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md transition-all flex items-center"
+                    title="Execute Final Approval with Finance, lock P&L metrics, and unlock quotation for Client"
+                  >
+                    <ShieldCheck size={16} className="mr-1.5" /> Final Approval with Finance (Lock & P&L Sign-off)
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleManagerAction('APPROVE')}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center"
+                  >
+                    <CheckCircle2 size={15} className="mr-1.5" /> Manager Approve & Route to Finance
+                  </button>
+                )}
+
                 <button
                   onClick={() => setShowReturnModal(true)}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all flex items-center"
+                  className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center"
                 >
                   <RotateCcw size={14} className="mr-1" /> Return for Revision
                 </button>
