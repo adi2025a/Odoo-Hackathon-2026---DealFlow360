@@ -495,74 +495,123 @@ export default function CentralDealWorkspace() {
 
       {/* TAB 1: Executive Overview */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
-              <h3 className="text-base font-bold text-slate-900 flex items-center">
-                <FileText className="text-blue-600 mr-2" size={18} /> Customer Scope & Requirement Details
-              </h3>
-              <p className="text-sm text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200 leading-relaxed">
-                "{deal?.description || 'Need 100 Industrial Controller 500 units with turnkey setup and annual support SLA coverage. Client procurement requests maximum volume discount.'}"
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div>
-                  <span className="text-slate-400 block font-medium">Expected Delivery</span>
-                  <span className="font-bold text-slate-800">14 Business Days</span>
+        <div className="space-y-6">
+          {/* 3 MASTER QUESTIONS EXECUTIVE GOVERNANCE CARD */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
+            <h3 className="text-base font-extrabold text-slate-900 flex items-center border-b border-slate-100 pb-3">
+              <ShieldCheck className="text-blue-600 mr-2" size={20} /> Deal Control Center — 3 Core Governance Answers
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              {/* Question 1 */}
+              <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
+                <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider block">1. WHERE IS THE DEAL NOW?</span>
+                <span className="text-base font-black text-slate-900 block">{deal?.stage?.replace('_', ' ') || 'QUOTATION'}</span>
+                <div className="flex items-center space-x-2 pt-1">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                    deal?.status === 'LOCKED' || quotation?.isLocked ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  }`}>
+                    {deal?.status === 'LOCKED' || quotation?.isLocked ? '🔒 QUOTE LOCKED' : '✓ UNLOCKED / ACTIVE'}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500">Risk: {quotation?.riskScore || deal?.riskScore || 65}/100</span>
                 </div>
-                <div>
-                  <span className="text-slate-400 block font-medium">Budget Cap</span>
-                  <span className="font-bold text-slate-800">₹50,00,000</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block font-medium">Payment Terms</span>
-                  <span className="font-bold text-slate-800">Net 30 Days</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block font-medium">Customer Tier</span>
-                  <span className="font-bold text-amber-600">GOLD Tier</span>
-                </div>
+              </div>
+
+              {/* Question 2 */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">2. WHAT HAPPENED BEFORE?</span>
+                <p className="text-slate-800 font-semibold leading-relaxed">
+                  {quotation?.isLocked
+                    ? `Requested discount (${quotation?.overallDiscountPercent || 16}%) exceeded Sales Rep authority (10%). Quotation auto-locked.`
+                    : deal?.stage === 'CLIENT_CONFIRMED' || deal?.stage === 'ORDER_CREATED'
+                    ? `Client confirmed quotation Q-1042. Order ORD-1042 generated.`
+                    : `Sales Rep created quotation Q-1042 V${quotation?.version || 1} with ₹${(quotation?.grandTotal || 4486330).toLocaleString('en-IN')} total.`}
+                </p>
+              </div>
+
+              {/* Question 3 */}
+              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+                <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">3. WHAT ACTION IS REQUIRED NEXT?</span>
+                <p className="text-amber-950 font-bold leading-relaxed">
+                  {quotation?.isLocked
+                    ? `Sales Manager / Finance approval required to sign off on discount cutoff and route to Client.`
+                    : deal?.stage === 'CLIENT_CONFIRMED' || deal?.stage === 'ORDER_CREATED'
+                    ? `Factory operations required to allocate multi-warehouse stock (Main: 60, East: 40) for fulfillment.`
+                    : `Client review and confirmation required to generate Order.`}
+                </p>
               </div>
             </div>
-
-            {!isClient && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
-                <h3 className="text-base font-bold text-slate-900 flex items-center">
-                  <ShieldAlert className="text-amber-600 mr-2" size={18} /> Internal Risk & Margin Governance
-                </h3>
-                <div className="space-y-3">
-                  {(quotation?.riskReasons || [
-                    'Requested discount (16%) exceeds Sales Rep authority (10%).',
-                    'Overall discount exceeds Gold tier standard guidelines.'
-                  ]).map((reason, idx) => (
-                    <div key={idx} className="flex items-start space-x-2 text-xs bg-red-50 text-red-800 p-3 rounded-lg border border-red-200">
-                      <AlertTriangle size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
-                      <span>{reason}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Required Next Action</h3>
-              {quotation?.isLocked ? (
-                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-2">
-                  <p className="font-bold">⏳ Waiting for Manager & Finance Approval</p>
-                  <p>Quotation is locked. Sales Manager or Finance must approve discount threshold before sending to client.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
+                <h3 className="text-base font-bold text-slate-900 flex items-center">
+                  <FileText className="text-blue-600 mr-2" size={18} /> Customer Scope & Requirement Details
+                </h3>
+                <p className="text-sm text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200 leading-relaxed">
+                  "{deal?.description || 'Need 100 Industrial Controller 500 units with turnkey setup and annual support SLA coverage. Client procurement requests maximum volume discount.'}"
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                  <div>
+                    <span className="text-slate-400 block font-medium">Expected Delivery</span>
+                    <span className="font-bold text-slate-800">14 Business Days</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-medium">Budget Cap</span>
+                    <span className="font-bold text-slate-800">₹50,00,000</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-medium">Payment Terms</span>
+                    <span className="font-bold text-slate-800">Net 30 Days</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-medium">Customer Tier</span>
+                    <span className="font-bold text-amber-600">GOLD Tier</span>
+                  </div>
                 </div>
-              ) : deal?.stage === 'CLIENT_CONFIRMED' || deal?.stage === 'ORDER_CREATED' ? (
-                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-2">
-                  <p className="font-bold">✓ Order Confirmed by Client</p>
-                  <p>Order has been created and routed to Factory for stock allocation.</p>
-                </div>
-              ) : (
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-2">
-                  <p className="font-bold">✓ Commercial Terms Approved</p>
-                  <p>Quotation is active. Client can review and click Confirm Quotation.</p>
+              </div>
+
+              {!isClient && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
+                  <h3 className="text-base font-bold text-slate-900 flex items-center">
+                    <ShieldAlert className="text-amber-600 mr-2" size={18} /> Internal Risk & Margin Governance
+                  </h3>
+                  <div className="space-y-3">
+                    {(quotation?.riskReasons || [
+                      'Requested discount (16%) exceeds Sales Rep authority (10%).',
+                      'Overall discount exceeds Gold tier standard guidelines.'
+                    ]).map((reason, idx) => (
+                      <div key={idx} className="flex items-start space-x-2 text-xs bg-red-50 text-red-800 p-3 rounded-lg border border-red-200">
+                        <AlertTriangle size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
+                        <span>{reason}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Required Next Action</h3>
+                {quotation?.isLocked ? (
+                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-2">
+                    <p className="font-bold">⏳ Waiting for Manager & Finance Approval</p>
+                    <p>Quotation is locked. Sales Manager or Finance must approve discount threshold before sending to client.</p>
+                  </div>
+                ) : deal?.stage === 'CLIENT_CONFIRMED' || deal?.stage === 'ORDER_CREATED' ? (
+                  <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-2">
+                    <p className="font-bold">✓ Order Confirmed by Client</p>
+                    <p>Order has been created and routed to Factory for stock allocation.</p>
+                  </div>
+                ) : (
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-2">
+                    <p className="font-bold">✓ Commercial Terms Approved</p>
+                    <p>Quotation is active. Client can review and click Confirm Quotation.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
