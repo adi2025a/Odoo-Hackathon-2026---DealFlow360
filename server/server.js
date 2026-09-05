@@ -29,6 +29,25 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+// Express HTTP Request Logger Middleware (Displays every incoming request on Render logs)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] 📥 ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Root & Health Check Routes
+app.get('/', (req, res) => {
+  res.json({
+    service: 'DEALFLOW360 Backend Engine',
+    status: 'ONLINE',
+    time: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'DEALFLOW360 API is healthy.' });
+});
+
 // Mount API Routes
 app.use('/api', apiRoutes);
 

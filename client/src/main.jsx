@@ -4,10 +4,19 @@ import axios from 'axios';
 import App from './App.jsx';
 import './index.css';
 
-if (import.meta.env.VITE_API_BASE_URL) {
-  axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
+let rawApiUrl = import.meta.env.VITE_API_BASE_URL || '';
+
+if (rawApiUrl) {
+  rawApiUrl = rawApiUrl.replace(/\/+$/, '');
+  if (rawApiUrl.endsWith('/api')) {
+    rawApiUrl = rawApiUrl.slice(0, -4);
+  }
+  axios.defaults.baseURL = rawApiUrl;
 }
+
 axios.defaults.withCredentials = true;
+
+console.log('📡 DEALFLOW360 API Base URL:', axios.defaults.baseURL || '(Relative Path)');
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -3,7 +3,12 @@ import { io } from 'socket.io-client';
 
 const SocketContext = createContext(null);
 
-const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+let rawSocketUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+rawSocketUrl = rawSocketUrl.replace(/\/+$/, '');
+if (rawSocketUrl.endsWith('/api')) {
+  rawSocketUrl = rawSocketUrl.slice(0, -4);
+}
+const SOCKET_URL = rawSocketUrl;
 
 export function SocketProvider({ children }) {
   const [isConnected, setIsConnected] = useState(false);
