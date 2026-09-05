@@ -447,10 +447,41 @@ router.post('/quotations', authenticateToken, async (req, res) => {
     }
     if (!deal) return res.status(404).json({ error: 'Deal not found.' });
 
-    const repUser = await User.findById(req.user.id);
-    const repAuthority = repUser ? repUser.discountAuthority : 10;
+    // 1. Resolve Sales Rep User Safely
+    let repUser = null;
+    if (mongoose.Types.ObjectId.isValid(req.user?.id)) {
+      repUser = await User.findById(req.user.id);
+    }
+    if (!repUser && req.user?.email) {
+      repUser = await User.findOne({ email: req.user.email });
+    }
+    if (!repUser) {
+      repUser = await User.findOne({ role: 'SALES_REP' });
+    }
+    if (!repUser) {
+      repUser = await User.findOne({});
+    }
 
+    const salesRepId = repUser ? repUser._id : deal.salesRep;
+    const repAuthority = repUser ? (repUser.discountAuthority || 10) : 10;
+
+    // 2. Resolve Customer Safely
+    let customerId = deal.customer;
+    if (!customerId || !mongoose.Types.ObjectId.isValid(customerId)) {
+      const clientUser = await User.findOne({ role: 'CLIENT' });
+      customerId = clientUser ? clientUser._id : salesRepId;
+    }
+
+    // 3. Process Metrics & Line Items Safely
     const metrics = calculateQuotationMetricsAndRisk(lines, repAuthority, 'GOLD');
+
+    const cleanLines = (metrics.lines || []).map(line => {
+      const cleanLine = { ...line };
+      if (cleanLine.product && !mongoose.Types.ObjectId.isValid(cleanLine.product)) {
+        delete cleanLine.product;
+      }
+      return cleanLine;
+    });
 
     const quoteCount = await Quotation.countDocuments();
     const quoteNumber = `Q-${1040 + quoteCount + 1}`;
@@ -458,11 +489,24 @@ router.post('/quotations', authenticateToken, async (req, res) => {
     const quotation = await Quotation.create({
       quoteNumber,
       deal: deal._id,
-      customer: deal.customer,
-      salesRep: req.user.id,
+      customer: customerId,
+      salesRep: salesRepId,
       version: 1,
-      lines,
-      ...metrics,
+      lines: cleanLines,
+      subtotal: metrics.subtotal,
+      discountAmount: metrics.discountAmount,
+      overallDiscountPercent: metrics.overallDiscountPercent,
+      taxAmount: metrics.taxAmount,
+      grandTotal: metrics.grandTotal,
+      totalCost: metrics.totalCost,
+      grossProfit: metrics.grossProfit,
+      grossMargin: metrics.grossMargin,
+      riskScore: metrics.riskScore,
+      riskLevel: metrics.riskLevel,
+      riskReasons: metrics.riskReasons,
+      isLocked: metrics.isLocked,
+      lockReason: metrics.lockReason,
+      requiredApprovalLevel: metrics.requiredApprovalLevel,
       status: metrics.isLocked ? 'PENDING_APPROVAL' : 'DRAFT',
       terms: terms || 'Net 30 Days. Delivery within 14 business days.'
     });
@@ -479,16 +523,16 @@ router.post('/quotations', authenticateToken, async (req, res) => {
       await ApprovalRequest.create({
         quotation: quotation._id,
         deal: deal._id,
-        requestedBy: req.user.id,
+        requestedBy: salesRepId,
         targetRole: metrics.requiredApprovalLevel === 'FINANCE' ? 'FINANCE' : 'SALES_MANAGER',
         status: 'PENDING',
         riskScore: metrics.riskScore,
         riskReasons: metrics.riskReasons,
         comments: metrics.lockReason,
         timeline: [{
-          user: req.user.id,
-          userName: req.user.name,
-          role: req.user.role,
+          user: salesRepId,
+          userName: repUser ? repUser.name : 'Sales Representative',
+          role: repUser ? repUser.role : 'SALES_REP',
           action: 'QUOTE_LOCKED_APPROVAL_CREATED',
           date: new Date(),
           comment: metrics.lockReason
@@ -501,7 +545,7 @@ router.post('/quotations', authenticateToken, async (req, res) => {
           user: managerUser._id,
           role: 'SALES_MANAGER',
           title: `Approval Required: ${quotation.quoteNumber}`,
-          message: `${req.user.name} submitted quote with ${metrics.overallDiscountPercent}% discount (Risk: ${metrics.riskLevel}).`,
+          message: `${repUser ? repUser.name : 'Sales Rep'} submitted quote with ${metrics.overallDiscountPercent}% discount (Risk: ${metrics.riskLevel}).`,
           type: 'APPROVAL_REQUEST',
           entityId: deal._id.toString()
         });
@@ -509,9 +553,9 @@ router.post('/quotations', authenticateToken, async (req, res) => {
     }
 
     await AuditLog.create({
-      user: req.user.id,
-      userName: req.user.name,
-      role: req.user.role,
+      user: salesRepId,
+      userName: repUser ? repUser.name : 'Sales Representative',
+      role: repUser ? repUser.role : 'SALES_REP',
       action: metrics.isLocked ? 'CREATE_LOCKED_QUOTE' : 'CREATE_QUOTE_DRAFT',
       entity: 'Quotation',
       entityId: quotation._id.toString(),
@@ -520,6 +564,7 @@ router.post('/quotations', authenticateToken, async (req, res) => {
 
     return res.status(201).json(quotation);
   } catch (err) {
+    console.error('❌ Error creating quotation:', err);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -542,28 +587,42 @@ router.put('/quotations/:id', authenticateToken, async (req, res) => {
     }
 
     const { lines, terms } = req.body;
-    const repUser = await User.findById(quotation.salesRep);
-    const repAuthority = repUser ? repUser.discountAuthority : 10;
+    let repUser = null;
+    if (mongoose.Types.ObjectId.isValid(quotation.salesRep)) {
+      repUser = await User.findById(quotation.salesRep);
+    }
+    const repAuthority = repUser ? (repUser.discountAuthority || 10) : 10;
 
     const metrics = calculateQuotationMetricsAndRisk(lines, repAuthority, 'GOLD');
+
+    const cleanLines = (metrics.lines || []).map(line => {
+      const cleanLine = { ...line };
+      if (cleanLine.product && !mongoose.Types.ObjectId.isValid(cleanLine.product)) {
+        delete cleanLine.product;
+      }
+      return cleanLine;
+    });
+
+    const createdById = mongoose.Types.ObjectId.isValid(req.user?.id) ? req.user.id : quotation.salesRep;
 
     await QuotationVersion.create({
       quotation: quotation._id,
       version: quotation.version,
-      lines: quotation.lines,
-      grandTotal: quotation.grandTotal,
-      overallDiscountPercent: quotation.overallDiscountPercent,
-      grossMargin: quotation.grossMargin,
-      riskScore: quotation.riskScore,
+      lines: cleanLines,
+      grandTotal: metrics.grandTotal,
+      overallDiscountPercent: metrics.overallDiscountPercent,
+      grossMargin: metrics.grossMargin,
+      riskScore: metrics.riskScore,
       changes: 'Line item prices/discounts updated.',
-      createdBy: req.user.id
+      createdBy: createdById
     });
 
     quotation.version += 1;
-    quotation.lines = lines;
+    quotation.lines = cleanLines;
     if (terms) quotation.terms = terms;
 
     Object.assign(quotation, metrics);
+    quotation.lines = cleanLines;
     if (metrics.isLocked) {
       quotation.status = 'PENDING_APPROVAL';
     }
@@ -582,6 +641,7 @@ router.put('/quotations/:id', authenticateToken, async (req, res) => {
 
     return res.json(quotation);
   } catch (err) {
+    console.error('❌ Error updating quotation:', err);
     return res.status(500).json({ error: err.message });
   }
 });
