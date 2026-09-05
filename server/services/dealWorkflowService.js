@@ -519,7 +519,7 @@ export async function financeAction(dealId, financeUser, action, comments = '') 
           customer: deal.customer,
           salesRep: deal.salesRep,
           totalAmount: quote.grandTotal,
-          paymentStatus: 'APPROVED',
+          paymentStatus: 'PAID',
           fulfillmentStatus: 'AWAITING_FULFILLMENT',
           status: 'CONFIRMED'
         });

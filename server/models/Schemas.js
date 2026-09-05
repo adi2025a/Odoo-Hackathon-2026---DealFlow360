@@ -254,7 +254,7 @@ const OrderSchema = new Schema({
   customer: { type: Schema.Types.ObjectId, ref: 'User' },
   salesRep: { type: Schema.Types.ObjectId, ref: 'User' },
   totalAmount: { type: Number, required: true },
-  paymentStatus: { type: String, enum: ['PENDING', 'PARTIALLY_PAID', 'PAID'], default: 'PENDING' },
+  paymentStatus: { type: String, enum: ['PENDING', 'PARTIALLY_PAID', 'PAID', 'APPROVED'], default: 'PENDING' },
   fulfillmentStatus: {
     type: String,
     enum: ['AWAITING_FULFILLMENT', 'SPLIT_PENDING', 'IN_PRODUCTION', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'BACKORDERED'],
