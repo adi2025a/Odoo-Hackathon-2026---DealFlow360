@@ -14,11 +14,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    const storedToken = localStorage.getItem('dealflow360_token');
+    if (storedToken) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+    }
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
     try {
+      const storedToken = localStorage.getItem('dealflow360_token');
+      if (storedToken) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      }
       const res = await axios.get('/api/auth/me');
       setUser(res.data.user);
     } catch (err) {
@@ -31,6 +39,10 @@ export const AuthProvider = ({ children }) => {
   const signup = async (formData) => {
     try {
       const res = await axios.post('/api/auth/signup', formData);
+      if (res.data.token) {
+        localStorage.setItem('dealflow360_token', res.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+      }
       setUser(res.data.user);
       showToast(`Account created! Welcome to DEALFLOW360, ${res.data.user.name}`, 'success');
       return true;
@@ -43,6 +55,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await axios.post('/api/auth/login', { email, password });
+      if (res.data.token) {
+        localStorage.setItem('dealflow360_token', res.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+      }
       setUser(res.data.user);
       showToast(`Welcome back, ${res.data.user.name}!`, 'success');
       return true;
@@ -56,10 +72,13 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       const res = await axios.post('/api/auth/demo-login', { role });
+      if (res.data.token) {
+        localStorage.setItem('dealflow360_token', res.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+      }
       setUser(res.data.user);
       showToast(`Switched to Role: ${role.replace('_', ' ')} (${res.data.user.name})`, 'success');
     } catch (err) {
-      // Fallback local mock user for smooth offline experience
       const mockUsers = {
         CLIENT: { id: 'u1', name: 'Acme Procurement (Client)', email: 'client@acme.com', role: 'CLIENT', company: 'Acme Industries' },
         SALES_REP: { id: 'u2', name: 'Rahul Sharma (Sales Rep)', email: 'sales@dealflow.com', role: 'SALES_REP', company: 'DealFlow360', discountAuthority: 10 },
@@ -79,6 +98,8 @@ export const AuthProvider = ({ children }) => {
     try {
       await axios.post('/api/auth/logout');
     } catch (e) {}
+    localStorage.removeItem('dealflow360_token');
+    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     showToast('Logged out.', 'info');
   };

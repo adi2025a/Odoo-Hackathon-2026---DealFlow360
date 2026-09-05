@@ -30,7 +30,17 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dealflow360_super_secret_jwt_key_2
 // Middleware for Auth & RBAC
 export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = (authHeader && authHeader.split(' ')[1]) || req.cookies?.token;
+  let token = null;
+
+  if (authHeader) {
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
+    } else {
+      token = authHeader.trim();
+    }
+  }
+
+  if (!token) token = req.cookies?.token || req.query?.token;
 
   if (!token) return res.status(401).json({ error: 'Unauthorized. Please login.' });
 
