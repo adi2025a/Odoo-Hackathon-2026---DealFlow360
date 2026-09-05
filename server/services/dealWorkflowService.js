@@ -23,33 +23,23 @@ const STAGE_ORDER = [
   'COMPLETED'
 ];
 
-/**
- * Validates whether a deal stage transition is valid under business rules.
- */
-export function canTransitionDeal(currentStage, nextStage, context = {}) {
+export function canTransitionDeal(currentStage, nextStage) {
   if (nextStage === 'LOST') return { allowed: true };
   if (currentStage === nextStage) return { allowed: true };
 
   const currentIndex = STAGE_ORDER.indexOf(currentStage);
   const nextIndex = STAGE_ORDER.indexOf(nextStage);
 
-  // Return for revision (going backward to QUOTATION)
   if ((currentStage === 'MANAGER_APPROVAL' || currentStage === 'FINANCE_APPROVAL' || currentStage === 'CLIENT_NEGOTIATION') && nextStage === 'QUOTATION') {
     return { allowed: true, reason: 'Return for revision allowed.' };
   }
 
-  // Client negotiation restarting approval
   if (currentStage === 'CLIENT_NEGOTIATION' && (nextStage === 'MANAGER_APPROVAL' || nextStage === 'FINANCE_APPROVAL')) {
     return { allowed: true, reason: 'Negotiation requested terms requiring approval restart.' };
   }
 
-  // Direct invalid jumps
   if (nextStage === 'ORDER_CREATED' && currentStage !== 'CLIENT_CONFIRMED' && currentStage !== 'APPROVED') {
     return { allowed: false, reason: 'Cannot create order without client confirmation or quote approval.' };
-  }
-
-  if (nextStage === 'COMPLETED' && currentStage !== 'DELIVERED' && currentStage !== 'FULFILLMENT') {
-    return { allowed: false, reason: 'Deal can only be completed after delivery and payment.' };
   }
 
   if (nextIndex > currentIndex + 2) {
@@ -59,9 +49,6 @@ export function canTransitionDeal(currentStage, nextStage, context = {}) {
   return { allowed: true };
 }
 
-/**
- * Post a system message into DEAL_CLIENT or DEAL_INTERNAL chat and broadcast via Socket.IO.
- */
 export async function postSystemMessage(dealId, conversationType, text, messageType = 'SYSTEM_EVENT', metadata = {}) {
   try {
     const deal = await Deal.findById(dealId);
@@ -91,7 +78,6 @@ export async function postSystemMessage(dealId, conversationType, text, messageT
       metadata
     });
 
-    // Write audit log
     await AuditLog.create({
       action: messageType,
       entity: 'Deal',
@@ -101,7 +87,6 @@ export async function postSystemMessage(dealId, conversationType, text, messageT
       reason: text
     });
 
-    // Broadcast over WebSocket if available
     if (global.io) {
       const room1 = deal.dealNumber;
       const room2 = deal._id.toString();
@@ -124,9 +109,6 @@ export async function postSystemMessage(dealId, conversationType, text, messageT
   }
 }
 
-/**
- * Create Deal from Lead (Converts Lead to Deal + Dual Conversations)
- */
 export async function createDealFromLead(leadId, repUser) {
   const lead = await Lead.findById(leadId);
   if (!lead) throw new Error('Lead not found.');
@@ -135,7 +117,7 @@ export async function createDealFromLead(leadId, repUser) {
   if (deal) return deal;
 
   const dealCount = await Deal.countDocuments();
-  const dealNumber = `DL-${1040 + dealCount + 1}`;
+  const dealNumber = `DEAL-${1040 + dealCount + 1}`;
 
   const clientUser = await User.findOne({ email: lead.email }) || await User.findOne({ role: 'CLIENT' });
   const managerUser = await User.findOne({ role: 'SALES_MANAGER' });
@@ -154,8 +136,8 @@ export async function createDealFromLead(leadId, repUser) {
     factory: factoryUser?._id,
     stage: 'REQUIREMENT',
     status: 'ACTIVE',
-    dealValue: lead.budget || 1000000,
-    grossMargin: 25.0
+    dealValue: lead.budget || 5000000,
+    grossMargin: 26.0
   });
 
   lead.status = 'QUOTE_DRAFT';
@@ -198,9 +180,6 @@ export async function createDealFromLead(leadId, repUser) {
   return deal;
 }
 
-/**
- * Submit or update quotation for a deal.
- */
 export async function submitQuotation(dealId, quoteData, user) {
   const deal = await Deal.findById(dealId).populate('customer');
   if (!deal) throw new Error('Deal not found.');
@@ -211,7 +190,7 @@ export async function submitQuotation(dealId, quoteData, user) {
 
   let quote = await Quotation.findOne({ deal: deal._id });
   const repAuthority = user.discountAuthority || 10;
-  const customerTier = deal.customer?.tier || 'BRONZE';
+  const customerTier = deal.customer?.tier || 'GOLD';
 
   const metrics = calculateQuotationMetricsAndRisk(quoteData.lines || [], repAuthority, customerTier);
 
@@ -228,22 +207,20 @@ export async function submitQuotation(dealId, quoteData, user) {
       version: 1,
       lines: quoteData.lines,
       ...metrics,
-      status: metrics.isLocked ? 'LOCKED' : 'DRAFT',
+      status: metrics.isLocked ? 'PENDING_APPROVAL' : 'DRAFT',
       terms: quoteData.terms || 'Net 30 Days. Delivery within 14 business days.'
     });
 
     deal.quotation = quote._id;
   } else {
-    // Increase version
     quote.version = (quote.version || 1) + 1;
     quote.lines = quoteData.lines;
     Object.assign(quote, metrics);
-    quote.status = metrics.isLocked ? 'LOCKED' : 'DRAFT';
+    quote.status = metrics.isLocked ? 'PENDING_APPROVAL' : 'DRAFT';
     if (quoteData.terms) quote.terms = quoteData.terms;
     await quote.save();
   }
 
-  // Create Quotation Version Snapshot
   await QuotationVersion.create({
     quotation: quote._id,
     version: quote.version,
@@ -267,7 +244,6 @@ export async function submitQuotation(dealId, quoteData, user) {
     deal.stage = 'MANAGER_APPROVAL';
     await deal.save();
 
-    // Create Manager Approval Request
     const existingReq = await ApprovalRequest.findOne({ deal: deal._id, status: 'PENDING' });
     if (!existingReq) {
       await ApprovalRequest.create({
@@ -315,9 +291,6 @@ export async function submitQuotation(dealId, quoteData, user) {
   return { deal, quote };
 }
 
-/**
- * Sales Manager Approve / Reject / Return
- */
 export async function managerAction(dealId, managerUser, action, comments = '') {
   const deal = await Deal.findById(dealId);
   if (!deal) throw new Error('Deal not found.');
@@ -328,17 +301,16 @@ export async function managerAction(dealId, managerUser, action, comments = '') 
   const approval = await ApprovalRequest.findOne({ deal: deal._id, status: 'PENDING' });
 
   if (action === 'APPROVE') {
-    // Check if Finance approval is required due to margin < 15% or high risk score >= 50
     const needsFinance = quote.grossMargin < 15 || quote.riskScore >= 50 || quote.overallDiscountPercent > 15;
 
     if (needsFinance) {
       deal.stage = 'FINANCE_APPROVAL';
       deal.status = 'LOCKED';
-      quote.status = 'FINANCE_APPROVAL';
+      quote.status = 'PENDING_APPROVAL';
 
       if (approval) {
         approval.targetRole = 'FINANCE';
-        approval.comments = comments || 'Manager approved. Escales to Finance for margin/risk review.';
+        approval.comments = comments || 'Manager approved. Escalates to Finance for margin/risk review.';
         approval.timeline.push({
           user: managerUser._id || managerUser.id,
           userName: managerUser.name,
@@ -433,9 +405,6 @@ export async function managerAction(dealId, managerUser, action, comments = '') 
   return { deal, quote };
 }
 
-/**
- * Finance Manager Approve / Reject / Return
- */
 export async function financeAction(dealId, financeUser, action, comments = '') {
   const deal = await Deal.findById(dealId);
   if (!deal) throw new Error('Deal not found.');
@@ -505,19 +474,12 @@ export async function financeAction(dealId, financeUser, action, comments = '') 
   return { deal, quote };
 }
 
-/**
- * Send Quotation to Client
- */
 export async function sendQuotationToClient(dealId, user) {
   const deal = await Deal.findById(dealId);
   if (!deal) throw new Error('Deal not found.');
 
   const quote = await Quotation.findById(deal.quotation);
   if (!quote) throw new Error('Quotation not found.');
-
-  if (quote.status !== 'APPROVED') {
-    throw new Error('Quotation must be APPROVED before sending to client.');
-  }
 
   deal.stage = 'CLIENT_NEGOTIATION';
   quote.status = 'SENT_TO_CLIENT';
@@ -534,9 +496,6 @@ export async function sendQuotationToClient(dealId, user) {
   return { deal, quote };
 }
 
-/**
- * Client Counter Negotiation Request
- */
 export async function clientNegotiate(dealId, negotiationData, clientUser) {
   const deal = await Deal.findById(dealId);
   if (!deal) throw new Error('Deal not found.');
@@ -546,7 +505,6 @@ export async function clientNegotiate(dealId, negotiationData, clientUser) {
 
   const requestedDiscount = Number(negotiationData.requestedDiscount) || quote.overallDiscountPercent;
 
-  // Create Negotiation Record
   const neg = await Negotiation.create({
     quotation: quote._id,
     deal: deal._id,
@@ -559,7 +517,6 @@ export async function clientNegotiate(dealId, negotiationData, clientUser) {
     status: 'PENDING'
   });
 
-  // Calculate new metrics
   const updatedLines = quote.lines.map(line => ({
     ...line.toObject(),
     discount: requestedDiscount
@@ -569,18 +526,16 @@ export async function clientNegotiate(dealId, negotiationData, clientUser) {
   const repAuthority = salesRep?.discountAuthority || 10;
   const metrics = calculateQuotationMetricsAndRisk(updatedLines, repAuthority, 'GOLD');
 
-  // Create Quotation Version
   quote.version = (quote.version || 1) + 1;
   quote.lines = updatedLines;
   Object.assign(quote, metrics);
 
   if (metrics.isLocked) {
-    quote.status = 'LOCKED';
+    quote.status = 'PENDING_APPROVAL';
     quote.isLocked = true;
     deal.status = 'LOCKED';
     deal.stage = 'MANAGER_APPROVAL';
 
-    // Create new Approval Request
     await ApprovalRequest.create({
       quotation: quote._id,
       deal: deal._id,
@@ -639,9 +594,6 @@ export async function clientNegotiate(dealId, negotiationData, clientUser) {
   return { deal, quote, negotiation: neg };
 }
 
-/**
- * Client Confirm Quotation -> Creates Order & Notifies Factory
- */
 export async function clientConfirmQuotation(dealId, clientUser) {
   const deal = await Deal.findById(dealId);
   if (!deal) throw new Error('Deal not found.');
@@ -649,11 +601,6 @@ export async function clientConfirmQuotation(dealId, clientUser) {
   const quote = await Quotation.findById(deal.quotation);
   if (!quote) throw new Error('Quotation not found.');
 
-  if (quote.status !== 'APPROVED' && quote.status !== 'SENT_TO_CLIENT' && quote.status !== 'NEGOTIATION') {
-    throw new Error('Quotation is not in an approved state for confirmation.');
-  }
-
-  // Lock quote permanently
   quote.status = 'CONFIRMED';
   quote.isLocked = true;
   await quote.save();
@@ -661,7 +608,6 @@ export async function clientConfirmQuotation(dealId, clientUser) {
   deal.stage = 'CLIENT_CONFIRMED';
   deal.status = 'WON';
 
-  // Check if Order already exists
   let order = await Order.findOne({ deal: deal._id });
   if (!order) {
     const oCount = await Order.countDocuments();
@@ -698,7 +644,6 @@ export async function clientConfirmQuotation(dealId, clientUser) {
     'APPROVAL_EVENT'
   );
 
-  // Create Notification for Factory & Finance
   const factoryUser = await User.findOne({ role: 'FACTORY' });
   if (factoryUser) {
     await Notification.create({
@@ -713,9 +658,6 @@ export async function clientConfirmQuotation(dealId, clientUser) {
   return { deal, quote, order };
 }
 
-/**
- * Factory Order Stock Allocation & Backorder Execution
- */
 export async function fulfillOrder(dealId, factoryUser) {
   const deal = await Deal.findById(dealId);
   if (!deal) throw new Error('Deal not found.');
@@ -726,13 +668,11 @@ export async function fulfillOrder(dealId, factoryUser) {
   const quote = await Quotation.findById(deal.quotation);
   if (!quote) throw new Error('Quotation not found.');
 
-  // Find product line
   const mainLine = quote.lines[0];
   const requiredQty = mainLine ? mainLine.quantity : 100;
 
-  // Check inventory stock in Main Warehouse and East Depot
-  const mainStock = 60; // Available stock in Main Warehouse
-  const eastStock = 40; // Available stock in East Depot
+  const mainStock = 60;
+  const eastStock = 40;
 
   let allocations = [];
   let backorders = [];
@@ -748,12 +688,8 @@ export async function fulfillOrder(dealId, factoryUser) {
     fulfillmentStatus = 'READY_TO_SHIP';
   } else {
     const availableTotal = mainStock + eastStock;
-    if (availableTotal > 0) {
-      allocations.push({ warehouseName: 'Main Warehouse', productName: mainLine?.productName || 'Industrial Controller 500', quantity: mainStock });
-    }
-    const backorderQty = requiredQty - availableTotal;
-    backorders.push({ productName: mainLine?.productName || 'Industrial Controller 500', quantity: backorderQty });
-
+    if (availableTotal > 0) allocations.push({ warehouseName: 'Main Warehouse', productName: mainLine?.productName || 'Industrial Controller 500', quantity: availableTotal });
+    backorders.push({ productName: mainLine?.productName || 'Industrial Controller 500', quantity: requiredQty - availableTotal });
     fulfillmentStatus = 'BACKORDERED';
   }
 
@@ -774,112 +710,12 @@ export async function fulfillOrder(dealId, factoryUser) {
   deal.stage = 'FULFILLMENT';
   await deal.save();
 
-  const allocText = allocations.map(a => `${a.quantity} units from ${a.warehouseName}`).join(', ');
-  const textMsg = backorders.length > 0
-    ? `Factory stock allocation: ${allocText}. Backorder created for ${backorders[0].quantity} units.`
-    : `Factory stock allocated: ${allocText}. Shipment prepared (Tracking #${fulfillment.trackingNumber}).`;
-
-  await postSystemMessage(deal._id, 'DEAL_INTERNAL', textMsg);
-  await postSystemMessage(deal._id, 'DEAL_CLIENT', `Order fulfillment update: Inventory allocated. ${textMsg}`);
-
-  return { deal, order, fulfillment };
-}
-
-/**
- * Generate Invoice & Subscription Billing
- */
-export async function createInvoiceForDeal(dealId, user) {
-  const deal = await Deal.findById(dealId);
-  if (!deal) throw new Error('Deal not found.');
-
-  const quote = await Quotation.findById(deal.quotation);
-  if (!quote) throw new Error('Quotation not found.');
-
-  let invoice = await Invoice.findOne({ deal: deal._id });
-  if (!invoice) {
-    const iCount = await Invoice.countDocuments();
-    const invNumber = `INV-${2026 + iCount + 1}`;
-
-    invoice = await Invoice.create({
-      invoiceNumber: invNumber,
-      order: deal.order,
-      customer: deal.customer,
-      deal: deal._id,
-      billingType: 'ONE_TIME',
-      lineItems: quote.lines.map(l => ({
-        description: l.productName || l.sku,
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        total: l.total
-      })),
-      subtotal: quote.subtotal,
-      tax: quote.taxAmount,
-      total: quote.grandTotal,
-      paidAmount: 0,
-      outstandingAmount: quote.grandTotal,
-      status: 'UNPAID',
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    });
-  }
-
-  deal.stage = 'BILLING';
-  await deal.save();
-
   await postSystemMessage(
     deal._id,
-    'DEAL_CLIENT',
-    `Invoice #${invoice.invoiceNumber} generated for ₹${invoice.total.toLocaleString('en-IN')}. Due date: ${invoice.dueDate.toLocaleDateString()}`
+    'DEAL_INTERNAL',
+    `Factory Operations allocated stock across warehouses (Main: ${allocations[0]?.quantity || 0}, East: ${allocations[1]?.quantity || 0}). Tracking #${fulfillment.trackingNumber}.`,
+    'APPROVAL_EVENT'
   );
 
-  return invoice;
-}
-
-/**
- * Record Invoice Payment
- */
-export async function recordPaymentForDeal(dealId, paymentData, user) {
-  const deal = await Deal.findById(dealId);
-  if (!deal) throw new Error('Deal not found.');
-
-  const invoice = await Invoice.findOne({ deal: deal._id });
-  if (!invoice) throw new Error('Invoice not found.');
-
-  const paymentAmount = Number(paymentData.amount) || invoice.total;
-
-  const payment = await Payment.create({
-    invoice: invoice._id,
-    amount: paymentAmount,
-    paymentMethod: paymentData.paymentMethod || 'BANK_TRANSFER',
-    transactionRef: paymentData.transactionRef || `TXN-${Date.now()}`,
-    status: 'COMPLETED'
-  });
-
-  invoice.paidAmount += paymentAmount;
-  invoice.outstandingAmount = Math.max(0, invoice.total - invoice.paidAmount);
-  if (invoice.outstandingAmount === 0) {
-    invoice.status = 'PAID';
-  } else {
-    invoice.status = 'PARTIALLY_PAID';
-  }
-  await invoice.save();
-
-  if (invoice.status === 'PAID') {
-    deal.stage = 'COMPLETED';
-    deal.status = 'WON';
-    deal.closedAt = new Date();
-    await deal.save();
-
-    await postSystemMessage(
-      deal._id,
-      'DEAL_CLIENT',
-      `Payment of ₹${paymentAmount.toLocaleString('en-IN')} received. Invoice #${invoice.invoiceNumber} is PAID. Deal Completed! 🎉`
-    );
-    await postSystemMessage(
-      deal._id,
-      'DEAL_INTERNAL',
-      `SYSTEM: Full payment recorded. Deal #${deal.dealNumber} marked as COMPLETED.`
-    );
-  }
-
-  return { deal, invoice, payment };
+  return { deal, order, fulfillment };
 }

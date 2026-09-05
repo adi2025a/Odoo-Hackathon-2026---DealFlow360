@@ -1,40 +1,35 @@
-export function calculateSubscriptionProration({
-  currentQuantity,
-  newQuantity,
-  unitPrice,
-  billingCycleDays = 30,
-  daysUsed = 12,
-  startDate,
-  endDate
-}) {
-  const oldMonthlyCost = currentQuantity * unitPrice;
-  const newMonthlyCost = newQuantity * unitPrice;
+/**
+ * Mid-Cycle Subscription Proration Engine
+ */
+export function calculateSubscriptionProration({ currentQuantity = 1, newQuantity = 2, unitPrice = 5000, daysUsed = 12, totalDaysInCycle = 30 }) {
+  const curQty = Number(currentQuantity);
+  const newQty = Number(newQuantity);
+  const price = Number(unitPrice);
+  const days = Number(daysUsed);
+  const totalDays = Number(totalDaysInCycle);
 
-  const daysRemaining = billingCycleDays - daysUsed;
-  const dailyOldRate = oldMonthlyCost / billingCycleDays;
-  const dailyNewRate = newMonthlyCost / billingCycleDays;
+  const daysRemaining = Math.max(0, totalDays - days);
+  const dailyRate = price / totalDays;
 
-  const usedAmount = Math.round(dailyOldRate * daysUsed);
-  const unusedOldCredit = Math.round(dailyOldRate * daysRemaining);
-  const newPeriodCharge = Math.round(dailyNewRate * daysRemaining);
+  // Unused portion refund credit for current seats
+  const unusedCredit = Math.round(curQty * dailyRate * daysRemaining);
 
-  const proratedAdjustment = newPeriodCharge - unusedOldCredit;
+  // Charge for new seats for remaining period
+  const newChargeProrated = Math.round(newQty * dailyRate * daysRemaining);
+
+  // Net prorated add-on charge
+  const netProratedAmount = newChargeProrated - unusedCredit;
 
   return {
-    currentQuantity,
-    newQuantity,
-    unitPrice,
-    oldMonthlyCost,
-    newMonthlyCost,
-    billingCycleDays,
-    daysUsed,
+    currentQuantity: curQty,
+    newQuantity: newQty,
+    unitPrice: price,
+    daysUsed: days,
     daysRemaining,
-    usedAmount,
-    unusedOldCredit,
-    newPeriodCharge,
-    proratedAdjustment, // Positive means additional charge, negative means credit refund
-    summaryMessage: proratedAdjustment >= 0
-      ? `Prorated add-on charge: ₹${proratedAdjustment.toLocaleString('en-IN')} for remaining ${daysRemaining} days.`
-      : `Prorated credit refund: ₹${Math.abs(proratedAdjustment).toLocaleString('en-IN')} applied for remaining ${daysRemaining} days.`
+    dailyRate: Math.round(dailyRate * 100) / 100,
+    unusedCredit,
+    newChargeProrated,
+    netProratedAmount,
+    newMonthlyTotal: newQty * price
   };
 }

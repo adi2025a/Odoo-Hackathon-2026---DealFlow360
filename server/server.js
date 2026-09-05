@@ -1,7 +1,6 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
@@ -22,7 +21,6 @@ const io = new Server(server, {
 global.io = io;
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/dealflow360';
 
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
@@ -76,7 +74,6 @@ io.on('connection', (socket) => {
     const roomId = data.roomId || data.conversationId || data.dealNumber || data.dealId;
     console.log(`💬 Message sent in room [${roomId}]:`, data.text);
 
-    // Broadcast message to room members (including sender or excluding based on front-end needs)
     if (roomId) {
       io.to(String(roomId)).emit('receive_message', {
         ...data,
@@ -124,7 +121,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Connect to Local Offline MongoDB Database
+// Connect to MongoDB Database
 connectDB();
 
 server.listen(PORT, () => {

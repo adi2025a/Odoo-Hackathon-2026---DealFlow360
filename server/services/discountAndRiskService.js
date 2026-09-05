@@ -1,124 +1,130 @@
-export function calculateQuotationMetricsAndRisk(lines, repAuthority = 10, customerTier = 'BRONZE') {
+/**
+ * Discount Governance & Risk Evaluation Engine
+ */
+export function calculateQuotationMetricsAndRisk(lines = [], repDiscountAuthority = 10, customerTier = 'BRONZE') {
   let subtotal = 0;
   let totalCost = 0;
   let totalDiscountAmount = 0;
   let totalTax = 0;
-  const riskReasons = [];
-  let riskScore = 10; // base risk
 
-  // Category limits
-  const categoryLimits = {
-    'Hardware': 15,
-    'Software': 20,
-    'Services': 10,
-    'Warranty': 10
-  };
-
-  // Tier limits
-  const tierMaxDiscount = {
-    'BRONZE': 10,
-    'SILVER': 12,
-    'GOLD': 15,
-    'ENTERPRISE': 20
-  };
-
-  let maxLineDiscount = 0;
-
-  lines.forEach(line => {
+  const processedLines = lines.map(line => {
     const qty = Number(line.quantity) || 1;
     const price = Number(line.unitPrice) || 0;
     const cost = Number(line.cost) || 0;
-    const discountPct = Number(line.discount) || 0;
+    const discPercent = Number(line.discount) || 0;
     const taxRate = Number(line.tax) || 18;
 
-    if (discountPct > maxLineDiscount) maxLineDiscount = discountPct;
-
-    const baseLineTotal = qty * price;
-    const lineDiscountVal = baseLineTotal * (discountPct / 100);
-    const afterDiscountTotal = baseLineTotal - lineDiscountVal;
-    const lineTaxVal = afterDiscountTotal * (taxRate / 100);
-
+    const lineSubtotal = qty * price;
+    const lineDiscount = lineSubtotal * (discPercent / 100);
+    const lineNet = lineSubtotal - lineDiscount;
+    const lineTax = lineNet * (taxRate / 100);
+    const lineTotal = lineNet + lineTax;
     const lineCostTotal = qty * cost;
-    const lineMargin = afterDiscountTotal > 0 ? ((afterDiscountTotal - lineCostTotal) / afterDiscountTotal) * 100 : 0;
+    const lineProfit = lineNet - lineCostTotal;
+    const lineMargin = lineNet > 0 ? (lineProfit / lineNet) * 100 : 0;
 
-    line.total = Math.round(afterDiscountTotal);
-    line.margin = Math.round(lineMargin * 10) / 10;
-
-    subtotal += baseLineTotal;
-    totalDiscountAmount += lineDiscountVal;
+    subtotal += lineSubtotal;
     totalCost += lineCostTotal;
-    totalTax += lineTaxVal;
+    totalDiscountAmount += lineDiscount;
+    totalTax += lineTax;
 
-    // Check category rule violation
-    const catLimit = categoryLimits[line.category] || 15;
-    if (discountPct > catLimit) {
-      riskScore += 25;
-      riskReasons.push(`${line.category || 'Product'} discount (${discountPct}%) exceeds category limit (${catLimit}%).`);
-    }
-
-    // Check margin
-    if (lineMargin < 12) {
-      riskScore += 20;
-      riskReasons.push(`Product line "${line.productName || line.sku || 'Item'}" gross margin (${line.margin}%) is below 12% target.`);
-    }
+    return {
+      ...line,
+      quantity: qty,
+      unitPrice: price,
+      cost,
+      discount: discPercent,
+      tax: taxRate,
+      total: Math.round(lineTotal),
+      margin: Math.round(lineMargin * 10) / 10
+    };
   });
 
-  const grandTotal = Math.round(subtotal - totalDiscountAmount + totalTax);
-  const overallDiscountPercent = subtotal > 0 ? Math.round((totalDiscountAmount / subtotal) * 100 * 10) / 10 : 0;
-  const grossProfit = Math.round(subtotal - totalDiscountAmount - totalCost);
-  const grossMargin = (subtotal - totalDiscountAmount) > 0 ? Math.round((grossProfit / (subtotal - totalDiscountAmount)) * 100 * 10) / 10 : 0;
+  const grandTotal = Math.round((subtotal - totalDiscountAmount) + totalTax);
+  const overallDiscountPercent = subtotal > 0 ? Math.round((totalDiscountAmount / subtotal) * 1000) / 10 : 0;
+  const netRevenue = subtotal - totalDiscountAmount;
+  const grossProfit = netRevenue - totalCost;
+  const grossMargin = netRevenue > 0 ? Math.round((grossProfit / netRevenue) * 1000) / 10 : 0;
 
-  // Rep authority check
-  let isLocked = false;
-  let lockReason = '';
-  let requiredApprovalLevel = 'NONE';
+  // Risk Score Calculation Algorithm (0 to 100)
+  let riskScore = 0;
+  const riskReasons = [];
 
-  if (overallDiscountPercent > repAuthority || maxLineDiscount > repAuthority) {
-    isLocked = true;
-    riskScore += 30;
-    lockReason = `Requested discount (${Math.max(overallDiscountPercent, maxLineDiscount)}%) exceeds Sales Rep approval authority (${repAuthority}%).`;
-    riskReasons.push(lockReason);
-    requiredApprovalLevel = 'MANAGER';
+  // 1. Discount vs Personal Authority Risk (+35)
+  if (overallDiscountPercent > repDiscountAuthority) {
+    const excess = overallDiscountPercent - repDiscountAuthority;
+    riskScore += Math.min(35, Math.round(excess * 5));
+    riskReasons.push(`Requested discount (${overallDiscountPercent}%) exceeds Sales Rep approval authority (${repDiscountAuthority}%).`);
   }
 
-  // Customer tier limit check
-  const tierLimit = tierMaxDiscount[customerTier] || 10;
-  if (overallDiscountPercent > tierLimit) {
-    riskScore += 15;
-    riskReasons.push(`Overall discount (${overallDiscountPercent}%) exceeds ${customerTier} tier max allowance (${tierLimit}%).`);
+  // 2. Gross Margin Threshold Risk (+35)
+  if (grossMargin < 15.0) {
+    riskScore += 35;
+    riskReasons.push(`Gross margin (${grossMargin}%) falls below 15.0% threshold requirement.`);
+  } else if (grossMargin < 20.0) {
+    riskScore += 20;
+    riskReasons.push(`Gross margin (${grossMargin}%) is below standard target (20.0%).`);
   }
 
-  // Finance level approval if risk score >= 50 or margin < 15%
-  if (riskScore >= 50 || grossMargin < 15 || overallDiscountPercent > 15) {
-    requiredApprovalLevel = 'FINANCE';
-    if (isLocked) {
-      lockReason += ' Requires dual Manager & Finance approval due to elevated margin risk.';
-    } else {
-      isLocked = true;
-      lockReason = `Quotation flagged for Finance review due to low gross margin (${grossMargin}%) or high risk score (${riskScore}/100).`;
-    }
+  // 3. Customer Tier Alignment Risk (+20)
+  const tierLimits = { BRONZE: 5, SILVER: 10, GOLD: 15, ENTERPRISE: 25 };
+  const tierCap = tierLimits[customerTier] || 10;
+  if (overallDiscountPercent > tierCap) {
+    riskScore += 20;
+    riskReasons.push(`Discount exceeds ${customerTier} tier standard limit (${tierCap}%).`);
   }
 
-  // Determine risk level
+  // 4. Low Volume High Discount Anomaly (+10)
+  if (subtotal < 100000 && overallDiscountPercent > 12) {
+    riskScore += 10;
+    riskReasons.push('High discount requested on small volume order.');
+  }
+
+  riskScore = Math.min(100, Math.max(0, riskScore));
+
   let riskLevel = 'LOW';
   if (riskScore >= 75) riskLevel = 'CRITICAL';
   else if (riskScore >= 50) riskLevel = 'HIGH';
   else if (riskScore >= 25) riskLevel = 'MEDIUM';
 
+  // Evaluate Lock Status and Required Approval Level
+  const isLocked = overallDiscountPercent > repDiscountAuthority || grossMargin < 15.0 || riskScore >= 50;
+
+  let requiredApprovalLevel = 'NONE';
+  if (isLocked) {
+    if (grossMargin < 15.0 || riskScore >= 50 || overallDiscountPercent > 20) {
+      requiredApprovalLevel = 'FINANCE';
+    } else {
+      requiredApprovalLevel = 'MANAGER';
+    }
+  }
+
+  let lockReason = '';
+  if (isLocked) {
+    if (overallDiscountPercent > repDiscountAuthority) {
+      lockReason = `Requested discount (${overallDiscountPercent}%) exceeds Sales Rep authority (${repDiscountAuthority}%). Flagged for Sales Manager & Finance review.`;
+    } else if (grossMargin < 15.0) {
+      lockReason = `Gross margin (${grossMargin}%) drops below minimum 15.0% floor. Requires Finance approval.`;
+    } else {
+      lockReason = `High Risk Score (${riskScore}/100) detected. Dual Manager & Finance review required.`;
+    }
+  }
+
   return {
-    subtotal: Math.round(subtotal),
-    discountAmount: Math.round(totalDiscountAmount),
+    lines: processedLines,
+    subtotal,
+    discountAmount: totalDiscountAmount,
     overallDiscountPercent,
-    taxAmount: Math.round(totalTax),
+    taxAmount: totalTax,
     grandTotal,
-    totalCost: Math.round(totalCost),
+    totalCost,
     grossProfit,
     grossMargin,
+    riskScore,
+    riskLevel,
+    riskReasons,
     isLocked,
     lockReason,
-    requiredApprovalLevel,
-    riskScore: Math.min(100, riskScore),
-    riskLevel,
-    riskReasons: [...new Set(riskReasons)]
+    requiredApprovalLevel
   };
 }

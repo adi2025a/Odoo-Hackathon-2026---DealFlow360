@@ -57,17 +57,17 @@ const LeadSchema = new Schema({
 const ProductSchema = new Schema({
   sku: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  category: { type: String, required: true }, // e.g., Hardware, Software, Services, Warranty
+  category: { type: String, required: true },
   description: { type: String },
   price: { type: Number, required: true },
   cost: { type: Number, required: true },
-  taxRate: { type: Number, default: 18 }, // % tax
+  taxRate: { type: Number, default: 18 },
   unit: { type: String, default: 'Units' },
   status: { type: String, enum: ['ACTIVE', 'DISCONTINUED'], default: 'ACTIVE' },
   stock: { type: Number, default: 100 },
-  maxDiscountLimit: { type: Number, default: 15 }, // Product specific limit
-  salesRepDiscountLimit: { type: Number, default: 10 }, // Max discount cap for Sales Rep
-  salesManagerDiscountLimit: { type: Number, default: 20 }, // Max discount cap for Sales Manager
+  maxDiscountLimit: { type: Number, default: 15 },
+  salesRepDiscountLimit: { type: Number, default: 10 },
+  salesManagerDiscountLimit: { type: Number, default: 20 },
   upsells: [{
     productId: { type: Schema.Types.ObjectId, ref: 'Product' },
     reason: { type: String },
@@ -81,7 +81,7 @@ const PriceListSchema = new Schema({
   name: { type: String, required: true },
   tier: { type: String, enum: ['BRONZE', 'SILVER', 'GOLD', 'ENTERPRISE'], required: true },
   currency: { type: String, default: 'INR' },
-  adjustments: { type: Number, default: 0 } // % adjustment from base price
+  adjustments: { type: Number, default: 0 }
 }, { timestamps: true });
 
 // 6. DISCOUNT RULE SCHEMA
@@ -102,7 +102,7 @@ const QuotationLineSchema = new Schema({
   quantity: { type: Number, required: true, min: 1 },
   unitPrice: { type: Number, required: true },
   cost: { type: Number, required: true },
-  discount: { type: Number, default: 0 }, // %
+  discount: { type: Number, default: 0 },
   tax: { type: Number, default: 18 },
   total: { type: Number, required: true },
   margin: { type: Number, required: true },
@@ -125,7 +125,7 @@ const QuotationSchema = new Schema({
   grandTotal: { type: Number, default: 0 },
   totalCost: { type: Number, default: 0 },
   grossProfit: { type: Number, default: 0 },
-  grossMargin: { type: Number, default: 0 }, // %
+  grossMargin: { type: Number, default: 0 },
   status: {
     type: String,
     enum: ['DRAFT', 'SUBMITTED', 'PENDING_APPROVAL', 'LOCKED', 'MANAGER_APPROVAL', 'FINANCE_APPROVAL', 'APPROVED', 'SENT_TO_CLIENT', 'NEGOTIATION', 'REVISION_REQUIRED', 'CONFIRMED', 'REJECTED', 'EXPIRED'],
@@ -212,7 +212,7 @@ const DealSchema = new Schema({
     enum: ['ACTIVE', 'ON_HOLD', 'LOCKED', 'WON', 'LOST', 'CANCELLED'],
     default: 'ACTIVE'
   },
-  healthScore: { type: Number, default: 90 }, // 0 - 100
+  healthScore: { type: Number, default: 90 },
   healthStatus: { type: String, enum: ['HEALTHY', 'AT_RISK', 'CRITICAL'], default: 'HEALTHY' },
   dealValue: { type: Number, default: 0 },
   grossMargin: { type: Number, default: 0 },
@@ -231,7 +231,7 @@ const DealSchema = new Schema({
 // 12. INVENTORY SCHEMA
 const InventorySchema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
-  warehouseName: { type: String, required: true }, // Main Warehouse, East Depot
+  warehouseName: { type: String, required: true },
   location: { type: String },
   totalStock: { type: Number, default: 100 },
   reserved: { type: Number, default: 0 },
@@ -312,6 +312,7 @@ const InvoiceSchema = new Schema({
 // 17. PAYMENT SCHEMA
 const PaymentSchema = new Schema({
   invoice: { type: Schema.Types.ObjectId, ref: 'Invoice', required: true },
+  customer: { type: Schema.Types.ObjectId, ref: 'User' },
   amount: { type: Number, required: true },
   paymentMethod: { type: String, default: 'BANK_TRANSFER' },
   transactionRef: { type: String, required: true },
@@ -353,8 +354,9 @@ const MessageSchema = new Schema({
 // 20. TASK SCHEMA
 const TaskSchema = new Schema({
   title: { type: String, required: true },
+  category: { type: String, default: 'Follow-up' },
   relatedDeal: { type: Schema.Types.ObjectId, ref: 'Deal' },
-  assignedTo: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
   dueDate: { type: Date },
   priority: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH'], default: 'MEDIUM' },
   status: { type: String, enum: ['TODO', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE'], default: 'TODO' }

@@ -1,45 +1,46 @@
-export function calculateWarehouseSplit(requestedItems, warehousesStock) {
-  // requestedItems: [{ productId, name, quantity }]
-  // warehousesStock: [{ warehouseName, productId, available }]
-  const allocations = [];
-  const backorders = [];
+/**
+ * Multi-Warehouse Split & Stock Allocation Engine
+ */
+export function calculateWarehouseSplit(requestedItems = [], inventories = []) {
+  let allocations = [];
+  let backorders = [];
+  let hasBackorder = false;
 
-  requestedItems.forEach(item => {
-    let remainingNeeded = item.quantity;
+  for (const item of requestedItems) {
+    const qtyNeeded = Number(item.quantity) || 1;
+    let remainingNeeded = qtyNeeded;
 
-    // Filter available stock for this product across warehouses
-    const stockEntries = warehousesStock
-      .filter(w => w.productId.toString() === item.productId.toString() || w.productName === item.name)
-      .sort((a, b) => b.available - a.available); // Prioritize warehouse with higher stock
+    const prodInventories = inventories.filter(inv =>
+      inv.product && (inv.product._id?.toString() === item.productId?.toString() || inv.product.sku === item.sku)
+    );
 
-    for (const stock of stockEntries) {
+    for (const inv of prodInventories) {
       if (remainingNeeded <= 0) break;
 
-      const allocateQty = Math.min(stock.available, remainingNeeded);
-      if (allocateQty > 0) {
+      const avail = inv.available || 0;
+      if (avail > 0) {
+        const allocated = Math.min(avail, remainingNeeded);
         allocations.push({
-          warehouseName: stock.warehouseName,
-          productName: item.name,
-          productId: item.productId,
-          quantity: allocateQty
+          warehouseName: inv.warehouseName,
+          productName: item.name || inv.product.name,
+          quantity: allocated
         });
-        remainingNeeded -= allocateQty;
-        stock.available -= allocateQty; // mutate local available count for calculation
+        remainingNeeded -= allocated;
       }
     }
 
     if (remainingNeeded > 0) {
+      hasBackorder = true;
       backorders.push({
         productName: item.name,
-        productId: item.productId,
         quantity: remainingNeeded
       });
     }
-  });
+  }
 
   return {
     allocations,
     backorders,
-    hasBackorder: backorders.length > 0
+    hasBackorder
   };
 }

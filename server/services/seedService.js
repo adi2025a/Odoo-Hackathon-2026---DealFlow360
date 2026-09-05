@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import {
-  User, Customer, Lead, Product, PriceList, DiscountRule, Quotation,
-  ApprovalRequest, Deal, Inventory, Order, Fulfillment, Subscription,
+  User, Customer, Lead, Product, ProductRequest, PriceList, DiscountRule, Quotation,
+  QuotationVersion, ApprovalRequest, Negotiation, Deal, Inventory, Order, Fulfillment, Subscription,
   Invoice, Payment, Conversation, Message, Task, Notification, AuditLog, DealHealthAlert
 } from '../models/Schemas.js';
 
@@ -13,6 +13,7 @@ export async function resetAndSeedDatabase() {
       Customer.deleteMany({}),
       Lead.deleteMany({}),
       Product.deleteMany({}),
+      ProductRequest.deleteMany({}),
       PriceList.deleteMany({}),
       DiscountRule.deleteMany({}),
       Quotation.deleteMany({}),
@@ -53,25 +54,24 @@ export async function seedDatabase(force = false) {
 
     const hashedPassword = await bcrypt.hash('password123', 10);
 
-    // 1. Users for 6 Roles
+    // 1. Users for All 6 Roles (1 user per role)
     const users = await User.insertMany([
       { name: 'Acme Procurement (Client)', email: 'client@acme.com', password: hashedPassword, role: 'CLIENT', company: 'Acme Industries' },
       { name: 'Rahul Sharma (Sales Rep)', email: 'sales@dealflow.com', password: hashedPassword, role: 'SALES_REP', company: 'DealFlow360', discountAuthority: 10 },
-      { name: 'Aman Verma (Sales Rep B)', email: 'sales2@dealflow.com', password: hashedPassword, role: 'SALES_REP', company: 'DealFlow360', discountAuthority: 12 },
-      { name: 'Mr. Shah (Sales Manager)', email: 'manager@dealflow.com', password: hashedPassword, role: 'SALES_MANAGER', company: 'DealFlow360' },
+      { name: 'Mr. Shah (Sales Manager)', email: 'manager@dealflow.com', password: hashedPassword, role: 'SALES_MANAGER', company: 'DealFlow360', discountAuthority: 25 },
       { name: 'R. Iyer (Finance Manager)', email: 'finance@dealflow.com', password: hashedPassword, role: 'FINANCE', company: 'DealFlow360' },
       { name: 'Main Factory (Operations)', email: 'factory@dealflow.com', password: hashedPassword, role: 'FACTORY', company: 'DealFlow360' },
       { name: 'System Admin', email: 'admin@dealflow.com', password: hashedPassword, role: 'ADMIN', company: 'DealFlow360' }
     ]);
 
     const clientUser = users.find(u => u.role === 'CLIENT');
-    const salesRep = users.find(u => u.email === 'sales@dealflow.com');
+    const salesRep = users.find(u => u.role === 'SALES_REP');
     const salesManager = users.find(u => u.role === 'SALES_MANAGER');
     const financeUser = users.find(u => u.role === 'FINANCE');
     const factoryUser = users.find(u => u.role === 'FACTORY');
 
     // 2. Customers
-    const customer = await Customer.create({
+    await Customer.create({
       companyName: 'Acme Industries',
       contactName: 'John Doe',
       email: 'client@acme.com',
@@ -135,7 +135,6 @@ export async function seedDatabase(force = false) {
       }
     ]);
 
-    // Attach upsells
     products[0].upsells = [
       { productId: products[1]._id, reason: 'Essential for fast commissioning', promotion: 'Save 10% on bundled setup', confidence: 98 },
       { productId: products[2]._id, reason: 'Ensures zero-downtime operations', promotion: '24/7 SLA Guarantee', confidence: 92 },
@@ -191,7 +190,7 @@ export async function seedDatabase(force = false) {
     lead.dealId = deal._id;
     await lead.save();
 
-    // 7. Quotation (Initial Demo Locked Quotation exceeding authority)
+    // 7. Quotation
     const quote = await Quotation.create({
       quoteNumber: 'Q-1042',
       deal: deal._id,
@@ -208,7 +207,7 @@ export async function seedDatabase(force = false) {
           quantity: 100,
           unitPrice: 45000,
           cost: 28000,
-          discount: 16, // > 10% Rep limit -> Locked!
+          discount: 16,
           tax: 18,
           total: 3780000,
           margin: 25.9,
@@ -302,7 +301,6 @@ export async function seedDatabase(force = false) {
     deal.internalConversation = internalConv._id;
     await deal.save();
 
-    // Client Chat Messages
     await Message.insertMany([
       {
         conversation: clientConv._id,
@@ -332,7 +330,6 @@ export async function seedDatabase(force = false) {
       }
     ]);
 
-    // Internal Chat Messages
     await Message.insertMany([
       {
         conversation: internalConv._id,
@@ -353,7 +350,7 @@ export async function seedDatabase(force = false) {
       }
     ]);
 
-    // 10. Audit Logs & Notifications
+    // 10. Audit Logs & Tasks
     await AuditLog.create({
       user: salesRep._id,
       userName: salesRep.name,
@@ -367,6 +364,16 @@ export async function seedDatabase(force = false) {
       timestamp: new Date()
     });
 
+    await Task.create({
+      title: 'Review Bulk Discount Request for Q-1042',
+      category: 'Follow-up',
+      relatedDeal: deal._id,
+      assignedTo: salesManager._id,
+      dueDate: new Date(Date.now() + 86400000 * 2),
+      priority: 'HIGH',
+      status: 'TODO'
+    });
+
     await Notification.create({
       user: salesManager._id,
       role: 'SALES_MANAGER',
@@ -376,7 +383,7 @@ export async function seedDatabase(force = false) {
       entityId: deal._id.toString()
     });
 
-    // 11. Subscription seed for hybrid billing demo
+    // 11. Subscription
     await Subscription.create({
       subscriptionNumber: 'SUB-2026-88',
       customer: clientUser._id,
@@ -387,11 +394,11 @@ export async function seedDatabase(force = false) {
       quantity: 1,
       totalAmount: 5000,
       status: 'ACTIVE',
-      currentPeriodStart: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
+      currentPeriodStart: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000),
       currentPeriodEnd: new Date(Date.now() + 18 * 24 * 60 * 60 * 1000)
     });
 
-    // 12. Deal Health Alert seed for Stalled Deal & Anomaly Demos
+    // 12. Health Alert
     await DealHealthAlert.create({
       deal: deal._id,
       alertType: 'DISCOUNT_ANOMALY',
