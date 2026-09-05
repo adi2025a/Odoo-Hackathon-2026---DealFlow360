@@ -92,50 +92,57 @@ export default function ProductCatalogView() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2.5 py-1 rounded-md">
-              Master Product Repository
-            </span>
-            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-              {products.length} Active SKUs
-            </span>
+      {/* Top Banner with Background Image */}
+      <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-xl text-white">
+        <img
+          src="/b2b_crm_banner.jpg"
+          alt="Master Product Catalog"
+          className="absolute inset-0 w-full h-full object-cover filter brightness-[0.35]"
+        />
+        <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-[2px] bg-slate-900/40">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest bg-blue-500/30 border border-blue-400/30 px-3 py-1 rounded-full backdrop-blur-md">
+                Master Product Repository
+              </span>
+              <span className="text-[10px] font-black text-emerald-300 bg-emerald-500/30 border border-emerald-400/30 px-3 py-1 rounded-full backdrop-blur-md">
+                {products.length} Active SKUs
+              </span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white drop-shadow-md">
+              Product & Service Catalog
+            </h1>
+            <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
+              Browse hardware automation controllers, turnkey field engineering services, recurring support SLAs, and warranty products.
+            </p>
           </div>
-          <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight mt-2">
-            Product & Service Catalog
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Browse hardware controllers, turnkey engineering services, recurring support SLAs, and warranty products.
-          </p>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all flex items-center inline-flex border border-white/20 hover-lift"
+          >
+            <Plus size={18} className="mr-2" /> Add New Product SKU
+          </button>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center inline-flex"
-        >
-          <Plus size={16} className="mr-1.5" /> Add New Product SKU
-        </button>
       </div>
 
       {/* KPI Metrics Summary Bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+        <div className="glass-card p-4 rounded-2xl border border-slate-200 card-shadow hover-lift">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Catalog SKUs</span>
           <span className="text-xl font-black text-slate-900 mt-1 block">{products.length} Items</span>
           <span className="text-xs text-blue-600 font-bold">● Active Master List</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+        <div className="glass-card p-4 rounded-2xl border border-slate-200 card-shadow hover-lift">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hardware Stock</span>
           <span className="text-xl font-black text-emerald-600 mt-1 block">100 Units</span>
           <span className="text-xs text-emerald-700 font-medium">Ready in Main Warehouse</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+        <div className="glass-card p-4 rounded-2xl border border-slate-200 card-shadow hover-lift">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Avg Gross Margin</span>
           <span className="text-xl font-black text-amber-600 mt-1 block">37.8%</span>
           <span className="text-xs text-amber-700 font-bold">High Profit Density</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+        <div className="glass-card p-4 rounded-2xl border border-slate-200 card-shadow hover-lift">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Max Discount Threshold</span>
           <span className="text-xl font-black text-slate-900 mt-1 block">15.0% Cap</span>
           <span className="text-xs text-purple-600 font-bold">Auto Manager Approval</span>
@@ -143,7 +150,7 @@ export default function ProductCatalogView() {
       </div>
 
       {/* Search & Category Filter Toolbar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 card-shadow flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="glass-card border border-slate-200 rounded-2xl p-4 card-shadow flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative flex-1 w-full">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -151,7 +158,7 @@ export default function ProductCatalogView() {
             placeholder="Search products by SKU, name, or specifications..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all"
           />
         </div>
 
@@ -165,7 +172,7 @@ export default function ProductCatalogView() {
               onClick={() => setCategoryFilter(cat)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex-shrink-0 ${
                 categoryFilter === cat
-                  ? 'bg-blue-600 text-white shadow-xs'
+                  ? 'bg-blue-600 text-white shadow-sm scale-105'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -179,25 +186,41 @@ export default function ProductCatalogView() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map(prod => {
           const margin = prod.price && prod.cost ? (((prod.price - prod.cost) / prod.price) * 100).toFixed(1) : '35.0';
+          const defaultProductImage = 
+            prod.sku === 'CTRL-IND-500' ? '/industrial_controller.jpg' :
+            prod.sku === 'SRV-INSTALL-PRO' ? '/onsite_installation.jpg' :
+            prod.category === 'Hardware' ? '/industrial_controller.jpg' :
+            prod.category === 'Services' ? '/onsite_installation.jpg' :
+            '/b2b_crm_banner.jpg';
 
           return (
             <div
               key={prod._id || prod.sku}
-              className="bg-white border border-slate-200 rounded-2xl p-5 card-shadow flex flex-col justify-between space-y-4 hover:border-blue-400 transition-all group"
+              className="bg-white border border-slate-200 rounded-2xl p-5 card-shadow flex flex-col justify-between space-y-4 hover:border-blue-400 hover-lift transition-all group overflow-hidden"
             >
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200 tracking-wider">
-                    {prod.sku}
-                  </span>
-                  <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-md ${
-                    prod.category === 'Hardware' ? 'bg-blue-50 text-blue-700' :
-                    prod.category === 'Services' ? 'bg-emerald-50 text-emerald-700' :
-                    prod.category === 'Subscription' ? 'bg-purple-50 text-purple-700' :
-                    'bg-amber-50 text-amber-700'
-                  }`}>
-                    {prod.category}
-                  </span>
+                {/* Product Image Thumbnail */}
+                <div className="relative h-44 rounded-xl overflow-hidden border border-slate-100 bg-slate-900 group-hover:shadow-md transition-all">
+                  <img
+                    src={prod.image || defaultProductImage}
+                    alt={prod.name}
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
+                  />
+                  <div className="absolute top-2.5 left-2.5 flex items-center space-x-1">
+                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 bg-slate-900/80 text-white rounded-md backdrop-blur-md border border-white/20 tracking-wider">
+                      {prod.sku}
+                    </span>
+                  </div>
+                  <div className="absolute top-2.5 right-2.5">
+                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-md backdrop-blur-md border ${
+                      prod.category === 'Hardware' ? 'bg-blue-600/90 text-white border-blue-400/30' :
+                      prod.category === 'Services' ? 'bg-emerald-600/90 text-white border-emerald-400/30' :
+                      prod.category === 'Subscription' ? 'bg-purple-600/90 text-white border-purple-400/30' :
+                      'bg-amber-600/90 text-white border-amber-400/30'
+                    }`}>
+                      {prod.category}
+                    </span>
+                  </div>
                 </div>
 
                 <div>
