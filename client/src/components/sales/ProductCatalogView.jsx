@@ -92,37 +92,30 @@ export default function ProductCatalogView() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner with Background Image */}
-      <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-xl text-white">
-        <img
-          src="/b2b_crm_banner.jpg"
-          alt="Master Product Catalog"
-          className="absolute inset-0 w-full h-full object-cover filter brightness-[0.35]"
-        />
-        <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-[2px] bg-slate-900/40">
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest bg-blue-500/30 border border-blue-400/30 px-3 py-1 rounded-full backdrop-blur-md">
-                Master Product Repository
-              </span>
-              <span className="text-[10px] font-black text-emerald-300 bg-emerald-500/30 border border-emerald-400/30 px-3 py-1 rounded-full backdrop-blur-md">
-                {products.length} Active SKUs
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white drop-shadow-md">
-              Product & Service Catalog
-            </h1>
-            <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
-              Browse hardware automation controllers, turnkey field engineering services, recurring support SLAs, and warranty products.
-            </p>
+      {/* Top Banner - Clean Light Theme */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-6 md:p-8 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6 hover-lift">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+              Master Product Repository
+            </span>
+            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+              {products.length} Active SKUs
+            </span>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all flex items-center inline-flex border border-white/20 hover-lift"
-          >
-            <Plus size={18} className="mr-2" /> Add New Product SKU
-          </button>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">
+            Product & Service Catalog
+          </h1>
+          <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-medium">
+            Browse hardware automation controllers, turnkey field engineering services, recurring support SLAs, and warranty products.
+          </p>
         </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-blue-500/20 transition-all flex items-center inline-flex border border-blue-500 hover-lift"
+        >
+          <Plus size={18} className="mr-2" /> Add New Product SKU
+        </button>
       </div>
 
       {/* KPI Metrics Summary Bar */}

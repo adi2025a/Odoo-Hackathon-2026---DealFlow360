@@ -61,33 +61,31 @@ export default function ClientPortal({ view = 'dashboard' }) {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Header Banner with Background Image */}
-      <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-xl text-white">
-        <img
-          src="/b2b_crm_banner.jpg"
-          alt="Client Portal Header"
-          className="absolute inset-0 w-full h-full object-cover filter brightness-[0.35]"
-        />
-        <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-[2px] bg-slate-900/40">
-          <div>
-            <span className="text-[10px] font-black bg-blue-500/30 border border-blue-400/30 text-blue-200 px-3 py-1 rounded-full uppercase tracking-widest backdrop-blur-md">
+      {/* Header Banner - Clean Light Theme */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-6 md:p-8 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6 hover-lift">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200/80 px-3 py-1 rounded-full uppercase tracking-widest">
               Client Enterprise Portal
             </span>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white drop-shadow-md mt-2">
-              Welcome, {user?.name || 'Acme Procurement'}
-            </h1>
-            <p className="text-xs md:text-sm text-slate-200 mt-1 max-w-xl font-medium">
-              Submit custom engineering requirements, negotiate quotations with assigned sales reps, review financial terms, and track order fulfillment.
-            </p>
+            <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-100">
+              Acme Procurement Workspace
+            </span>
           </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => navigate('/customer/new-query')}
-              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all border border-white/20 hover-lift"
-            >
-              + Submit New Requirement Query
-            </button>
-          </div>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">
+            Welcome, {user?.name || 'Acme Procurement'}
+          </h1>
+          <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-medium">
+            Submit custom engineering requirements, negotiate quotations with assigned sales reps, review financial terms, and track order fulfillment.
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => navigate('/customer/new-query')}
+            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-blue-500/20 transition-all border border-blue-500 hover-lift flex items-center"
+          >
+            + Submit New Requirement Query
+          </button>
         </div>
       </div>
 
