@@ -438,7 +438,13 @@ router.get('/quotations', authenticateToken, async (req, res) => {
 router.post('/quotations', authenticateToken, async (req, res) => {
   try {
     const { dealId, lines, terms } = req.body;
-    const deal = await Deal.findById(dealId);
+    let deal = null;
+    if (mongoose.Types.ObjectId.isValid(dealId)) {
+      deal = await Deal.findById(dealId);
+    }
+    if (!deal) {
+      deal = await Deal.findOne({ dealNumber: dealId });
+    }
     if (!deal) return res.status(404).json({ error: 'Deal not found.' });
 
     const repUser = await User.findById(req.user.id);
@@ -520,7 +526,13 @@ router.post('/quotations', authenticateToken, async (req, res) => {
 
 router.put('/quotations/:id', authenticateToken, async (req, res) => {
   try {
-    const quotation = await Quotation.findById(req.params.id);
+    let quotation = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      quotation = await Quotation.findById(req.params.id);
+    }
+    if (!quotation) {
+      quotation = await Quotation.findOne({ quoteNumber: req.params.id });
+    }
     if (!quotation) return res.status(404).json({ error: 'Quotation not found.' });
 
     if (quotation.isLocked && quotation.status === 'PENDING_APPROVAL' && req.user.role === 'SALES_REP') {

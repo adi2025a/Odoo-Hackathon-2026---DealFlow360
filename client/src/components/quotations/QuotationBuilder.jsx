@@ -101,10 +101,11 @@ export default function QuotationBuilder({ quotationData, dealData, onSave }) {
 
   const handleSaveQuotation = async () => {
     try {
+      const dealIdVal = dealData?.deal?._id || dealData?._id || dealData?.deal?.dealNumber || 'DEAL-1042';
       if (quotationData?._id) {
         await axios.put(`/api/quotations/${quotationData._id}`, { lines });
       } else {
-        await axios.post('/api/quotations', { dealId: dealData?._id || 'DEAL-1042', lines });
+        await axios.post('/api/quotations', { dealId: dealIdVal, lines });
       }
       showToast('Quotation saved successfully! Risk & Approval evaluated.', 'success');
       if (onSave) onSave();
