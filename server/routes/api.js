@@ -856,49 +856,12 @@ router.post('/approvals/:id/action', authenticateToken, authorizeRoles('SALES_MA
       comment: comments || `Action ${action} executed by ${req.user.role}`
     });
 
-    if (action === 'APPROVE') {
-      if (req.user.role === 'SALES_MANAGER' && quote.requiredApprovalLevel === 'FINANCE') {
-        approval.targetRole = 'FINANCE';
-        approval.status = 'PENDING';
-        quote.status = 'PENDING_APPROVAL';
-
-        await Notification.create({
-          user: deal.financeUser || (await User.findOne({ role: 'FINANCE' }))._id,
-          role: 'FINANCE',
-          title: `Finance Margin Review: ${quote.quoteNumber}`,
-          message: `Manager approved ${quote.quoteNumber}. Flagged for Finance review (Margin: ${quote.grossMargin}%).`,
-          type: 'APPROVAL_REQUEST',
-          entityId: deal._id.toString()
-        });
-      } else {
-        approval.status = 'APPROVED';
-        quote.isLocked = false;
-        quote.status = 'APPROVED';
-        deal.stage = 'QUOTATION';
-
-        await Notification.create({
-          user: quote.salesRep,
-          role: 'SALES_REP',
-          title: `Quote ${quote.quoteNumber} APPROVED!`,
-          message: `Quotation ${quote.quoteNumber} has been approved and unlocked. Ready to send to Client.`,
-          type: 'QUOTE_APPROVED',
-          entityId: deal._id.toString()
-        });
-      }
-    } else if (action === 'RETURN') {
-      approval.status = 'RETURNED';
-      quote.isLocked = false;
-      quote.status = 'REVISION_REQUIRED';
-      deal.stage = 'QUOTATION';
-    } else if (action === 'REJECT') {
-      approval.status = 'REJECTED';
-      quote.status = 'REJECTED';
-      deal.stage = 'LOST';
+    let result;
+    if (req.user.role === 'FINANCE') {
+      result = await financeAction(deal._id, req.user, action, comments);
+    } else {
+      result = await managerAction(deal._id, req.user, action, comments);
     }
-
-    await approval.save();
-    await quote.save();
-    await deal.save();
 
     await AuditLog.create({
       user: req.user.id,
@@ -910,7 +873,7 @@ router.post('/approvals/:id/action', authenticateToken, authorizeRoles('SALES_MA
       reason: comments || action
     });
 
-    return res.json({ message: `Approval action ${action} executed successfully.`, approval, quote });
+    return res.json({ message: `Approval action ${action} executed successfully.`, approval, quote: result?.quote, deal: result?.deal });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

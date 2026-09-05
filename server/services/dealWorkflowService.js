@@ -323,62 +323,58 @@ export async function managerAction(dealId, managerUser, action, comments = '') 
   const approval = await ApprovalRequest.findOne({ deal: deal._id, status: 'PENDING' });
 
   if (action === 'APPROVE') {
-    const needsFinance = quote.grossMargin < 15 || quote.riskScore >= 50 || quote.overallDiscountPercent > 15;
+    deal.stage = 'FINANCE_APPROVAL';
+    quote.status = 'PENDING_APPROVAL';
+    quote.isLocked = true;
 
-    if (needsFinance) {
-      deal.stage = 'FINANCE_APPROVAL';
-      deal.status = 'LOCKED';
-      quote.status = 'PENDING_APPROVAL';
-
-      if (approval) {
-        approval.targetRole = 'FINANCE';
-        approval.comments = comments || 'Manager approved. Escalates to Finance for margin/risk review.';
-        approval.timeline.push({
-          user: managerUser._id || managerUser.id,
-          userName: managerUser.name,
-          role: 'SALES_MANAGER',
-          action: 'MANAGER_APPROVED',
-          comment: comments || 'Approved by Manager. Routed to Finance.'
-        });
-        await approval.save();
-      }
-
-      await postSystemMessage(
-        deal._id,
-        'DEAL_INTERNAL',
-        `Sales Manager ${managerUser.name} APPROVED quote. High risk / low margin detected (${quote.grossMargin}%). Sent to Finance for financial review.`,
-        'APPROVAL_EVENT'
-      );
+    if (approval) {
+      approval.targetRole = 'FINANCE';
+      approval.status = 'PENDING';
+      approval.timeline.push({
+        user: managerUser._id || managerUser.id,
+        userName: managerUser.name,
+        role: 'SALES_MANAGER',
+        action: 'MANAGER_APPROVED_SHARED_WITH_FINANCE',
+        comment: comments || 'Approved by Manager. Shared with Finance for profit calculation & final locking.'
+      });
+      await approval.save();
     } else {
-      deal.stage = 'APPROVED';
-      deal.status = 'ACTIVE';
-      quote.status = 'APPROVED';
-      quote.isLocked = false;
-
-      if (approval) {
-        approval.status = 'APPROVED';
-        approval.timeline.push({
+      await ApprovalRequest.create({
+        quotation: quote._id,
+        deal: deal._id,
+        requestedBy: managerUser._id || managerUser.id,
+        targetRole: 'FINANCE',
+        status: 'PENDING',
+        riskScore: quote.riskScore,
+        comments: 'Manager approved quote and shared with Finance for profit calculation & final locking.',
+        timeline: [{
           user: managerUser._id || managerUser.id,
           userName: managerUser.name,
           role: 'SALES_MANAGER',
-          action: 'MANAGER_APPROVED',
-          comment: comments || 'Final approval granted by Manager.'
-        });
-        await approval.save();
-      }
-
-      await postSystemMessage(
-        deal._id,
-        'DEAL_INTERNAL',
-        `Sales Manager ${managerUser.name} APPROVED quotation. Commercial terms validated.`,
-        'APPROVAL_EVENT'
-      );
-      await postSystemMessage(
-        deal._id,
-        'DEAL_CLIENT',
-        `Quotation ${quote.quoteNumber} approved internally and ready for review.`
-      );
+          action: 'MANAGER_APPROVED_ROUTED_TO_FINANCE',
+          comment: comments || 'Approved by Manager. Shared with Finance.'
+        }]
+      });
     }
+
+    const financeUser = await User.findOne({ role: 'FINANCE' });
+    if (financeUser) {
+      await Notification.create({
+        user: financeUser._id,
+        role: 'FINANCE',
+        title: `Finance Profit Calculation Required: ${quote.quoteNumber}`,
+        message: `Sales Manager ${managerUser.name} approved quote ${quote.quoteNumber}. Verify profit calculation and execute final lock for immediate shipping.`,
+        type: 'APPROVAL_REQUEST',
+        entityId: deal._id.toString()
+      });
+    }
+
+    await postSystemMessage(
+      deal._id,
+      'DEAL_INTERNAL',
+      `Sales Manager ${managerUser.name} APPROVED quote ${quote.quoteNumber}. Shared with Finance for P&L profit calculation and final locking.`,
+      'APPROVAL_EVENT'
+    );
   } else if (action === 'RETURN' || action === 'RETURN_FOR_REVISION') {
     deal.stage = 'QUOTATION';
     deal.status = 'ACTIVE';
@@ -437,34 +433,101 @@ export async function financeAction(dealId, financeUser, action, comments = '') 
   const approval = await ApprovalRequest.findOne({ deal: deal._id, status: 'PENDING' });
 
   if (action === 'APPROVE') {
-    deal.stage = 'APPROVED';
-    deal.status = 'ACTIVE';
-    quote.status = 'APPROVED';
-    quote.isLocked = false;
+    const grossProfit = quote.grossProfit || ((quote.subtotal || 0) - (quote.discountAmount || 0) - (quote.totalCost || 0));
+    const grossMargin = quote.grossMargin || 26.0;
+    const isProfitable = grossProfit > 0 && grossMargin >= 15.0;
 
-    if (approval) {
-      approval.status = 'APPROVED';
-      approval.timeline.push({
-        user: financeUser._id || financeUser.id,
-        userName: financeUser.name,
-        role: 'FINANCE',
-        action: 'FINANCE_APPROVED',
-        comment: comments || 'Finance approved margin & payment terms.'
-      });
-      await approval.save();
+    if (isProfitable) {
+      deal.stage = 'FULFILLMENT';
+      deal.status = 'LOCKED';
+      quote.status = 'APPROVED';
+      quote.isLocked = true;
+
+      if (approval) {
+        approval.status = 'APPROVED';
+        approval.timeline.push({
+          user: financeUser._id || financeUser.id,
+          userName: financeUser.name,
+          role: 'FINANCE',
+          action: 'FINANCE_FINAL_LOCK_APPROVED',
+          comment: comments || `Finance calculated profit (₹${grossProfit.toLocaleString('en-IN')}, Margin: ${grossMargin}%). Deal FINAL LOCKED & ready to ship ASAP!`
+        });
+        await approval.save();
+      }
+
+      let order = await Order.findOne({ deal: deal._id });
+      if (!order) {
+        const oCount = await Order.countDocuments();
+        let orderNumber = `ORD-${2026 + oCount + 1}`;
+        let existingOrder = await Order.findOne({ orderNumber });
+        while (existingOrder) {
+          orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
+          existingOrder = await Order.findOne({ orderNumber });
+        }
+
+        order = await Order.create({
+          orderNumber,
+          deal: deal._id,
+          quotation: quote._id,
+          customer: deal.customer,
+          salesRep: deal.salesRep,
+          totalAmount: quote.grandTotal,
+          paymentStatus: 'APPROVED',
+          fulfillmentStatus: 'AWAITING_FULFILLMENT',
+          status: 'CONFIRMED'
+        });
+        deal.order = order._id;
+      }
+
+      const factoryUser = await User.findOne({ role: 'FACTORY' });
+      if (factoryUser) {
+        await Notification.create({
+          user: factoryUser._id,
+          role: 'FACTORY',
+          title: `🔒 DEAL LOCKED: Order Ready for Immediate Shipment!`,
+          message: `Deal ${deal.dealNumber} (Order #${order?.orderNumber || 'ORD-2026'}) passed Finance profit verification (₹${grossProfit.toLocaleString('en-IN')}). Status: DEAL LOCKED. Ship ASAP!`,
+          type: 'ORDER_LOCKED',
+          entityId: deal._id.toString()
+        });
+      }
+
+      await postSystemMessage(
+        deal._id,
+        'DEAL_INTERNAL',
+        `🔒 FINAL FINANCE LOCK: Profit calculation verified (₹${grossProfit.toLocaleString('en-IN')} Gross Profit, Margin: ${grossMargin}%). Status set to DEAL LOCKED. Order #${order?.orderNumber || 'ORD-2026'} routed to Factory to be SHIPPED ASAP!`,
+        'APPROVAL_EVENT'
+      );
+      await postSystemMessage(
+        deal._id,
+        'DEAL_CLIENT',
+        `🎉 QUOTATION FINALIZED & DEAL LOCKED: Commercial & financial profit verification completed. Your order #${order?.orderNumber || 'ORD-2026'} is LOCKED and being processed for immediate dispatch & shipping!`
+      );
+    } else {
+      deal.stage = 'QUOTATION';
+      deal.status = 'ACTIVE';
+      quote.status = 'REVISION_REQUIRED';
+      quote.isLocked = false;
+      quote.lockReason = `Finance profit check failed: Deal profit (₹${grossProfit}) or margin (${grossMargin}%) does not meet minimum profitability floor requirement.`;
+
+      if (approval) {
+        approval.status = 'RETURNED';
+        approval.timeline.push({
+          user: financeUser._id || financeUser.id,
+          userName: financeUser.name,
+          role: 'FINANCE',
+          action: 'FINANCE_PROFIT_CHECK_FAILED',
+          comment: comments || 'Profit check failed. Margin below threshold.'
+        });
+        await approval.save();
+      }
+
+      await postSystemMessage(
+        deal._id,
+        'DEAL_INTERNAL',
+        `⚠️ FINANCE PROFIT CHECK FAILED: Gross margin (${grossMargin}%) / Gross Profit (₹${grossProfit}) is non-profitable. Quote returned to Rep & Manager for price adjustment.`,
+        'APPROVAL_EVENT'
+      );
     }
-
-    await postSystemMessage(
-      deal._id,
-      'DEAL_INTERNAL',
-      `Finance Manager ${financeUser.name} APPROVED financial terms & margin structure.`,
-      'APPROVAL_EVENT'
-    );
-    await postSystemMessage(
-      deal._id,
-      'DEAL_CLIENT',
-      `Quotation ${quote.quoteNumber} approved and finalized.`
-    );
   } else if (action === 'RETURN') {
     deal.stage = 'QUOTATION';
     deal.status = 'ACTIVE';
