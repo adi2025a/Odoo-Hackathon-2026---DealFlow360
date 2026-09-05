@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
-  ShieldCheck, Lock, Mail, User, Building2, LogIn, UserPlus, Sparkles, CheckCircle2, ArrowRight, Layers, Eye
+  ShieldCheck, Lock, Mail, User, Building2, LogIn, UserPlus, Sparkles, CheckCircle2, ArrowRight, Layers, Eye, ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function AuthPage() {
+export default function AuthPage({ onBack }) {
   const { login, signup, demoLogin, showToast } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [showDemoAccounts, setShowDemoAccounts] = useState(true);
@@ -120,6 +120,15 @@ export default function AuthPage() {
           
           {/* Top Brand Header */}
           <div>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 mb-4 transition-colors"
+              >
+                <ArrowLeft size={14} />
+                <span>Back to Home</span>
+              </button>
+            )}
             <div className="flex items-center space-x-3 mb-2">
               <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center shadow-md">
                 <ShieldCheck className="text-white" size={24} />

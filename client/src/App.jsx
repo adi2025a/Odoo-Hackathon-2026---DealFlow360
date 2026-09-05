@@ -16,11 +16,13 @@ import QuotationBuilder from './components/quotations/QuotationBuilder';
 import WarehouseSplitCard from './components/fulfillment/WarehouseSplitCard';
 
 import AuthPage from './components/auth/AuthPage';
+import LandingPage from './components/landing/LandingPage';
 
 function MainLayout() {
   const { user, loading, toast, demoLogin, showToast } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
 
   if (loading) {
     return (
@@ -45,7 +47,11 @@ function MainLayout() {
             {toast.message}
           </div>
         )}
-        <AuthPage />
+        {showLanding ? (
+          <LandingPage onGetStarted={() => setShowLanding(false)} onSignIn={() => setShowLanding(false)} />
+        ) : (
+          <AuthPage onBack={() => setShowLanding(true)} />
+        )}
       </>
     );
   }
