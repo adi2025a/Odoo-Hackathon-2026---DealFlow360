@@ -25,7 +25,7 @@ export default function TopBar({ onTriggerScenario }) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between z-10 sticky top-0 shadow-sm">
+    <header className="h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between z-40 sticky top-0 shadow-sm">
       {/* Global Search Bar */}
       <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md hidden sm:block">
         <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />

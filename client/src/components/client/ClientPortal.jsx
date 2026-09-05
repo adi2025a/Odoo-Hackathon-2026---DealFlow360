@@ -62,33 +62,33 @@ export default function ClientPortal({ view = 'dashboard' }) {
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto font-sans">
       {/* EXECUTIVE HERO BANNER WITH ARCHITECTURAL BACKGROUND */}
-      <div className="relative rounded-3xl overflow-hidden border border-stone-200/80 shadow-lg text-white">
+      <div className="relative rounded-3xl overflow-hidden shadow-lg text-white">
         <img
           src="/client_minimal_bg.jpg"
           alt="Client Executive Workspace"
-          className="absolute inset-0 w-full h-full object-cover filter brightness-[0.45] contrast-[1.05]"
+          className="absolute inset-0 w-full h-full object-cover filter brightness-[0.4] contrast-[1.05]"
         />
-        <div className="relative z-10 p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-[2px] bg-stone-950/40">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center space-x-2.5">
-              <span className="text-[10px] font-black tracking-widest uppercase bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-3 py-1 rounded-full backdrop-blur-md">
+        <div className="relative z-10 p-6 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-[3px] bg-stone-950/50">
+          <div className="space-y-2.5 max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black tracking-widest uppercase bg-emerald-500/25 border border-emerald-400/50 text-emerald-300 px-3 py-1 rounded-full backdrop-blur-md">
                 Client Enterprise Workspace
               </span>
-              <span className="text-[10px] font-bold bg-stone-800/80 border border-stone-700 text-stone-200 px-3 py-1 rounded-full backdrop-blur-md">
+              <span className="text-[10px] font-bold bg-stone-900/90 border border-stone-700 text-stone-200 px-3 py-1 rounded-full backdrop-blur-md">
                 {user?.company || 'Acme Procurement'}
               </span>
             </div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white drop-shadow-sm font-heading">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white drop-shadow-sm font-heading">
               Welcome, {user?.name || 'Acme Procurement'}
             </h1>
             <p className="text-xs md:text-sm text-stone-200 leading-relaxed font-medium">
               Manage custom hardware queries, review approved quotations, negotiate volume terms, and track order fulfillment in real-time.
             </p>
           </div>
-          <div className="flex items-center space-x-3 flex-shrink-0">
+          <div className="flex items-center space-x-3 flex-shrink-0 pt-2 md:pt-0">
             <button
               onClick={() => navigate('/customer/new-query')}
-              className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-lg hover:shadow-emerald-600/20 transition-all border border-emerald-500/50 hover-lift flex items-center"
+              className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-xl transition-all border border-emerald-400/50 flex items-center hover-lift"
             >
               <Send size={15} className="mr-2" /> + Submit Requirement Query
             </button>
