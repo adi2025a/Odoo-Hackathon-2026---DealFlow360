@@ -185,69 +185,107 @@ export default function AuthPage({ onBack }) {
             </div>
           </div>
 
-          {/* 1-CLICK DEMO ACCOUNTS BOX */}
-          <div className="bg-white text-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <div className="flex items-center space-x-2">
-                <Users size={16} className="text-blue-600" />
-                <span className="font-extrabold text-xs uppercase tracking-wider text-slate-900">
-                  1-Click Demo Accounts
+          {/* CONDITIONAL LEFT SIDE CONTAINER: Demo Accounts for Sign In | Hero Feature Image for Sign Up */}
+          {!isSignup ? (
+            /* 1-CLICK DEMO ACCOUNTS BOX (SHOWN ON SIGN IN) */
+            <div className="bg-white text-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="flex items-center space-x-2">
+                  <Users size={16} className="text-blue-600" />
+                  <span className="font-extrabold text-xs uppercase tracking-wider text-slate-900">
+                    1-Click Demo Accounts
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-bold">
+                  Explore pre-configured roles
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-bold">
-                Explore pre-configured roles
-              </span>
-            </div>
 
-            <div className="space-y-2 max-h-[310px] overflow-y-auto pr-1">
-              {demoAccounts.map((acc) => {
-                const isSelected = loginForm.email === acc.email;
-                return (
-                  <div
-                    key={acc.role}
-                    onClick={() => handleSelectDemoAccount(acc)}
-                    className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
-                      isSelected
-                        ? 'bg-blue-50/90 border-blue-500 shadow-sm'
-                        : 'bg-slate-50/70 border-slate-200/80 hover:border-slate-300 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center flex-shrink-0 ${
-                        acc.role === 'SALES_REP' ? 'bg-blue-600 text-white' :
-                        acc.role === 'SALES_MANAGER' ? 'bg-purple-600 text-white' :
-                        acc.role === 'FINANCE' ? 'bg-emerald-600 text-white' :
-                        acc.role === 'FACTORY' ? 'bg-amber-600 text-white' : 'bg-rose-600 text-white'
-                      }`}>
-                        {acc.title[0]}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-extrabold text-xs text-slate-900 truncate">{acc.title}</span>
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${acc.badgeBg}`}>
-                            {acc.badge}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 truncate">{acc.email}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{acc.desc}</p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleQuickDemoLogin(acc.role);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-[11px] font-black shadow-xs transition-all flex items-center flex-shrink-0 ${acc.btnColor}`}
+              <div className="space-y-2 max-h-[310px] overflow-y-auto pr-1">
+                {demoAccounts.map((acc) => {
+                  const isSelected = loginForm.email === acc.email;
+                  return (
+                    <div
+                      key={acc.role}
+                      onClick={() => handleSelectDemoAccount(acc)}
+                      className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
+                        isSelected
+                          ? 'bg-blue-50/90 border-blue-500 shadow-sm'
+                          : 'bg-slate-50/70 border-slate-200/80 hover:border-slate-300 hover:bg-slate-100'
+                      }`}
                     >
-                      Login <ArrowRight size={13} className="ml-1" />
-                    </button>
-                  </div>
-                );
-              })}
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center flex-shrink-0 ${
+                          acc.role === 'SALES_REP' ? 'bg-blue-600 text-white' :
+                          acc.role === 'SALES_MANAGER' ? 'bg-purple-600 text-white' :
+                          acc.role === 'FINANCE' ? 'bg-emerald-600 text-white' :
+                          acc.role === 'FACTORY' ? 'bg-amber-600 text-white' : 'bg-rose-600 text-white'
+                        }`}>
+                          {acc.title[0]}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-extrabold text-xs text-slate-900 truncate">{acc.title}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${acc.badgeBg}`}>
+                              {acc.badge}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 truncate">{acc.email}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{acc.desc}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleQuickDemoLogin(acc.role);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-[11px] font-black shadow-xs transition-all flex items-center flex-shrink-0 ${acc.btnColor}`}
+                      >
+                        Login <ArrowRight size={13} className="ml-1" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* HERO IMAGE & FEATURE HIGHLIGHTS CARD (SHOWN ON SIGN UP) */
+            <div className="bg-white text-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4">
+              <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-md relative group">
+                <img
+                  src="/auth_hero.jpg"
+                  alt="DEALFLOW360 Enterprise Governance Platform"
+                  className="w-full h-56 object-cover object-center transform group-hover:scale-105 transition-all duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent flex items-end p-4 text-white">
+                  <div>
+                    <span className="text-[10px] font-black uppercase bg-blue-600 px-2.5 py-0.5 rounded-full tracking-wider shadow-sm">
+                      Enterprise Ready Platform
+                    </span>
+                    <h3 className="font-extrabold text-sm mt-1.5 leading-snug">
+                      Unified Query-to-Cash Automation & Deal Governance
+                    </h3>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs font-bold text-slate-700 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                {[
+                  'Automated Discount & Risk Score Governance Engine',
+                  'Multi-Tier Manager & Finance Margin Sign-Off Workflow',
+                  'Real-Time WebSocket Deal Room & Customer Collaboration',
+                  'Factory Stock Allocation & Multi-Warehouse Fulfillment'
+                ].map((feat, idx) => (
+                  <div key={idx} className="flex items-center space-x-2">
+                    <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0" />
+                    <span className="text-slate-800 font-extrabold">{feat}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ======================================================== */}
