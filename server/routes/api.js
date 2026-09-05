@@ -389,8 +389,19 @@ router.get('/deals/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    const clientMessages = await Message.find({ conversation: clientConv._id }).sort({ createdAt: 1 });
-    const internalMessages = req.user.role === 'CLIENT' ? [] : await Message.find({ conversation: internalConv._id }).sort({ createdAt: 1 });
+    const clientMessages = await Message.find({
+      $or: [
+        { conversation: clientConv._id },
+        { deal: deal._id }
+      ]
+    }).sort({ createdAt: 1 });
+
+    const internalMessages = req.user.role === 'CLIENT' ? [] : await Message.find({
+      $or: [
+        { conversation: internalConv._id },
+        { deal: deal._id }
+      ]
+    }).sort({ createdAt: 1 });
 
     return res.json({
       deal,

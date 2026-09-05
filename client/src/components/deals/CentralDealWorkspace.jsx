@@ -186,6 +186,7 @@ export default function CentralDealWorkspace() {
       text: msgText,
       senderName: user?.name || 'You',
       senderRole: user?.role || 'CLIENT',
+      conversationType: 'DEAL_CLIENT',
       createdAt: new Date().toISOString()
     };
 
@@ -205,7 +206,8 @@ export default function CentralDealWorkspace() {
       await axios.post(`/api/chat/conversations/${convId}/messages`, {
         text: msgText,
         senderName: user?.name,
-        senderRole: user?.role
+        senderRole: user?.role,
+        conversationType: 'DEAL_CLIENT'
       });
     } catch (err) {
       console.warn('Chat save notice:', err.message);
@@ -224,6 +226,7 @@ export default function CentralDealWorkspace() {
       text: msgText,
       senderName: user?.name || 'You',
       senderRole: user?.role || 'SALES_REP',
+      conversationType: 'DEAL_INTERNAL',
       createdAt: new Date().toISOString()
     };
 
@@ -243,7 +246,8 @@ export default function CentralDealWorkspace() {
       await axios.post(`/api/chat/conversations/${convId}/messages`, {
         text: msgText,
         senderName: user?.name,
-        senderRole: user?.role
+        senderRole: user?.role,
+        conversationType: 'DEAL_INTERNAL'
       });
     } catch (err) {
       console.warn('Chat save notice:', err.message);
