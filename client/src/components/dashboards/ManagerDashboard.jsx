@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2, ShieldAlert, AlertTriangle, ArrowRight, UserCheck, TrendingUp,
-  DollarSign, Activity, Lock, Share2, MessageSquare, FileText
+  DollarSign, Activity, Lock, Share2, MessageSquare, FileText, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
