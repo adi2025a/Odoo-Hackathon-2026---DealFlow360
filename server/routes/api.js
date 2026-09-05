@@ -10,7 +10,7 @@ import {
 import { calculateQuotationMetricsAndRisk } from '../services/discountAndRiskService.js';
 import { calculateWarehouseSplit } from '../services/fulfillmentService.js';
 import { calculateSubscriptionProration } from '../services/subscriptionService.js';
-import { seedDatabase } from '../services/seedService.js';
+import { seedDatabase, resetAndSeedDatabase } from '../services/seedService.js';
 import {
   createDealFromLead,
   submitQuotation as submitQuotationWorkflow,
@@ -174,6 +174,15 @@ router.get('/auth/me', authenticateToken, async (req, res) => {
 router.post('/auth/logout', (req, res) => {
   res.clearCookie('token');
   return res.json({ message: 'Logged out successfully.' });
+});
+
+router.post('/seed/reset', async (req, res) => {
+  try {
+    await resetAndSeedDatabase();
+    return res.json({ message: '🧹 Database wiped and re-seeded cleanly with 1 user profile per role!' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // ----------------------------------------------------

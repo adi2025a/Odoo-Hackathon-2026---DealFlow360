@@ -5,10 +5,46 @@ import {
   Invoice, Payment, Conversation, Message, Task, Notification, AuditLog, DealHealthAlert
 } from '../models/Schemas.js';
 
-export async function seedDatabase() {
+export async function resetAndSeedDatabase() {
+  try {
+    console.log('🧹 Clearing all database collections...');
+    await Promise.all([
+      User.deleteMany({}),
+      Customer.deleteMany({}),
+      Lead.deleteMany({}),
+      Product.deleteMany({}),
+      PriceList.deleteMany({}),
+      DiscountRule.deleteMany({}),
+      Quotation.deleteMany({}),
+      QuotationVersion.deleteMany({}),
+      ApprovalRequest.deleteMany({}),
+      Negotiation.deleteMany({}),
+      Deal.deleteMany({}),
+      Inventory.deleteMany({}),
+      Order.deleteMany({}),
+      Fulfillment.deleteMany({}),
+      Subscription.deleteMany({}),
+      Invoice.deleteMany({}),
+      Payment.deleteMany({}),
+      Conversation.deleteMany({}),
+      Message.deleteMany({}),
+      Task.deleteMany({}),
+      Notification.deleteMany({}),
+      AuditLog.deleteMany({}),
+      DealHealthAlert.deleteMany({})
+    ]);
+
+    return await seedDatabase(true);
+  } catch (err) {
+    console.error('❌ Error resetting database:', err);
+    throw err;
+  }
+}
+
+export async function seedDatabase(force = false) {
   try {
     const existingUsers = await User.countDocuments();
-    if (existingUsers > 0) {
+    if (existingUsers > 0 && !force) {
       console.log('⚡ Database already contains seed data.');
       return;
     }
