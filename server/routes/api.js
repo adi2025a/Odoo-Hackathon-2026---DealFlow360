@@ -184,7 +184,13 @@ router.get('/leads', authenticateToken, async (req, res) => {
   try {
     let query = {};
     if (req.user.role === 'SALES_REP') {
-      query.assignedRep = req.user.id;
+      query = {
+        $or: [
+          { assignedRep: req.user.id },
+          { assignedRep: null },
+          { assignedRep: { $exists: false } }
+        ]
+      };
     }
     const leads = await Lead.find(query).populate('assignedRep', 'name email').sort({ createdAt: -1 });
     return res.json(leads);
@@ -205,22 +211,35 @@ router.post('/leads', async (req, res) => {
       ...req.body,
       leadNumber,
       status: 'NEW',
-      assignedRep: defaultRep ? defaultRep._id : null
+      assignedRep: req.body.assignedRep || (defaultRep ? defaultRep._id : null)
     });
 
-    // Create system notification for Sales Rep
+    // Automatically convert Lead to Deal so it immediately appears in Sales Rep pipeline & chats
+    let deal = null;
     if (defaultRep) {
+      try {
+        deal = await createDealFromLead(lead._id, defaultRep);
+      } catch (e) {
+        console.warn('Auto deal creation notice:', e.message);
+      }
+
       await Notification.create({
         user: defaultRep._id,
         role: 'SALES_REP',
         title: 'New Client Query Submitted',
         message: `New query received from ${lead.company} for ${lead.product || 'Services'}.`,
         type: 'NEW_LEAD',
-        entityId: lead._id.toString()
+        entityId: deal ? deal._id.toString() : lead._id.toString()
       });
+
+      // Broadcast Socket event to real-time clients
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('business_event', { type: 'NEW_LEAD', lead, deal });
+      }
     }
 
-    return res.status(201).json(lead);
+    return res.status(201).json({ lead, deal });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -252,7 +271,13 @@ router.get('/deals', authenticateToken, async (req, res) => {
   try {
     let query = {};
     if (req.user.role === 'SALES_REP') {
-      query.salesRep = req.user.id;
+      query = {
+        $or: [
+          { salesRep: req.user.id },
+          { salesRep: null },
+          { salesRep: { $exists: false } }
+        ]
+      };
     } else if (req.user.role === 'CLIENT') {
       query.customer = req.user.id;
     }
