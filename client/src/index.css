@@ -244,16 +244,16 @@
 .glass-card,
 .card-shadow,
 div.bg-white {
-  border-width: 1px !important;
+  border-width: 1.5px !important;
   border-style: solid !important;
-  border-color: var(--theme-card-border, rgba(203, 213, 225, 0.9)) !important;
+  border-color: var(--theme-card-border, rgba(148, 163, 184, 0.5)) !important;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
 }
 
 .glass-card:hover,
 .card-shadow:hover,
 div.bg-white:hover {
-  border-color: var(--theme-card-border-hover, rgba(148, 163, 184, 0.95)) !important;
+  border-color: var(--theme-card-border-hover, rgba(100, 116, 139, 0.85)) !important;
 }
 
 /* Custom Scrollbar for Enterprise UI */
