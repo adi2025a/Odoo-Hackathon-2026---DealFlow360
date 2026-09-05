@@ -128,7 +128,7 @@ const QuotationSchema = new Schema({
   grossMargin: { type: Number, default: 0 }, // %
   status: {
     type: String,
-    enum: ['DRAFT', 'SUBMITTED', 'LOCKED', 'MANAGER_APPROVAL', 'FINANCE_APPROVAL', 'APPROVED', 'SENT_TO_CLIENT', 'NEGOTIATION', 'REVISION_REQUIRED', 'CONFIRMED', 'REJECTED', 'EXPIRED'],
+    enum: ['DRAFT', 'SUBMITTED', 'PENDING_APPROVAL', 'LOCKED', 'MANAGER_APPROVAL', 'FINANCE_APPROVAL', 'APPROVED', 'SENT_TO_CLIENT', 'NEGOTIATION', 'REVISION_REQUIRED', 'CONFIRMED', 'REJECTED', 'EXPIRED'],
     default: 'DRAFT'
   },
   isLocked: { type: Boolean, default: false },
