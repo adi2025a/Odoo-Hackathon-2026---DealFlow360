@@ -215,6 +215,9 @@ export default function FinanceDashboard({ viewMode }) {
   const simulatedMargin = Number(((simulatedProfit / dealRevenue) * 100).toFixed(1));
   const isSimulatedProfitable = simulatedMargin >= 20.0;
 
+  // Determine if viewing main Dashboard or sub-page
+  const isDashboardPage = (activeTab === 'overview' || activeTab === 'dashboard') && (!viewMode || viewMode === 'overview' || viewMode === 'dashboard');
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
       {/* ---------------------------------------------------- */}
@@ -231,7 +234,16 @@ export default function FinanceDashboard({ viewMode }) {
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mt-2">
-            Finance Command Center
+            {isDashboardPage ? 'Finance Command Center' :
+             activeTab === 'approvals' ? 'Financial Approvals Queue' :
+             activeTab === 'margin' ? 'Deal Profitability & Margin Governance' :
+             activeTab === 'inventory-valuation' ? 'Inventory Valuation & Aging Report' :
+             activeTab === 'warehouse-costs' ? 'Warehouse Costs & Operating P&L' :
+             activeTab === 'reconciliation' ? 'Stock Reconciliation Review' :
+             activeTab === 'invoices' ? 'Invoice Management & Billing' :
+             activeTab === 'payments' || activeTab === 'ar' ? 'Payments & Accounts Receivable' :
+             activeTab === 'subscriptions' ? 'Subscription Billing & MRR Engine' :
+             'Financial Analytics & Decision Reports'}
           </h1>
           <p className="text-xs text-slate-500 font-semibold mt-1">
             Financial control, deal margin verification, inventory valuation, invoice tracking, AR aging, and P&L governance.
@@ -240,10 +252,10 @@ export default function FinanceDashboard({ viewMode }) {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => handleExportCSV('Executive_Financial_Overview')}
+            onClick={() => handleExportCSV(activeTab)}
             className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 transition-all flex items-center"
           >
-            <Download size={14} className="mr-1.5 text-slate-600" /> Export P&L Data
+            <Download size={14} className="mr-1.5 text-slate-600" /> Export Report Data
           </button>
           <button
             onClick={() => setShowPaymentModal(true)}
@@ -262,143 +274,146 @@ export default function FinanceDashboard({ viewMode }) {
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* 2. TOP EXECUTIVE KPI CARDS                           */}
+      {/* 2. TOP EXECUTIVE KPI CARDS & ACTION CENTER           */}
+      {/* (ONLY SHOWN ON DASHBOARD OVERVIEW PAGE)               */}
       {/* ---------------------------------------------------- */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        {/* Total Revenue */}
-        <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1 hover:border-blue-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Total Revenue</span>
-            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><DollarSign size={16} /></div>
-          </div>
-          <div className="text-xl md:text-2xl font-black text-slate-900">₹{kpis.totalRevenue.toLocaleString('en-IN')}</div>
-          <div className="text-[11px] text-emerald-600 font-extrabold flex items-center">
-            <ArrowUpRight size={13} className="mr-0.5" /> ↑ 12.4% vs prev period
-          </div>
-        </div>
-
-        {/* Gross Profit & Margin */}
-        <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1 hover:border-emerald-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Gross Profit</span>
-            <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><TrendingUp size={16} /></div>
-          </div>
-          <div className="text-xl md:text-2xl font-black text-emerald-700">₹{kpis.grossProfit.toLocaleString('en-IN')}</div>
-          <div className="text-[11px] text-emerald-700 font-extrabold">
-            Margin: <strong>{kpis.grossMargin}%</strong> (Target: 20.0%)
-          </div>
-        </div>
-
-        {/* Outstanding Invoices */}
-        <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1 hover:border-amber-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Outstanding Invoices</span>
-            <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg"><FileText size={16} /></div>
-          </div>
-          <div className="text-xl md:text-2xl font-black text-amber-800">₹{kpis.outstandingInvoices.toLocaleString('en-IN')}</div>
-          <div className="text-[11px] text-amber-700 font-bold">
-            1 Unpaid • Overdue: ₹{kpis.overdueAmount.toLocaleString('en-IN')}
-          </div>
-        </div>
-
-        {/* Inventory Value */}
-        <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1 hover:border-purple-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Inventory Value</span>
-            <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg"><Truck size={16} /></div>
-          </div>
-          <div className="text-xl md:text-2xl font-black text-slate-900">₹{kpis.inventoryValue.toLocaleString('en-IN')}</div>
-          <div className="text-[11px] text-slate-600 font-bold">
-            {kpis.totalUnits} Units Total • 2 Warehouses
-          </div>
-        </div>
-
-        {/* Accounts Receivable */}
-        <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1">
-          <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">Accounts Receivable</span>
-          <div className="text-lg md:text-xl font-black text-slate-900">₹{kpis.accountsReceivable.toLocaleString('en-IN')}</div>
-          <span className="text-[10px] font-bold text-slate-500">Overdue Buckets: ₹3.20L</span>
-        </div>
-
-        {/* Monthly Recurring ARR */}
-        <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1">
-          <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">MRR (Subscriptions)</span>
-          <div className="text-lg md:text-xl font-black text-blue-700">₹{kpis.mrr.toLocaleString('en-IN')}</div>
-          <span className="text-[10px] font-bold text-emerald-700">{kpis.activeSubscriptionsCount} Active Subscriptions</span>
-        </div>
-
-        {/* Pending Financial Approvals */}
-        <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1">
-          <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">Pending Approvals</span>
-          <div className="text-lg md:text-xl font-black text-amber-700">{kpis.pendingApprovalsCount} Deal Queue</div>
-          <span className="text-[10px] font-bold text-amber-600">Requires Margin Sign-off</span>
-        </div>
-
-        {/* Minimum Margin Floor Policy */}
-        <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1">
-          <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">Company Margin Floor</span>
-          <div className="text-lg md:text-xl font-black text-emerald-800">20.0% Floor</div>
-          <span className="text-[10px] font-bold text-emerald-600">✓ Enforced by Backend</span>
-        </div>
-      </div>
-
-      {/* ---------------------------------------------------- */}
-      {/* 3. ACTION CENTER ("FINANCE ACTION REQUIRED")          */}
-      {/* ---------------------------------------------------- */}
-      <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-5 shadow-xs space-y-3">
-        <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
-          <h2 className="text-sm font-black text-amber-950 uppercase tracking-wider flex items-center">
-            <AlertTriangle className="text-amber-600 mr-2" size={18} />
-            Finance Action Required ({actionItems.length || 3})
-          </h2>
-          <span className="text-[10px] font-extrabold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md">
-            ATTENTION NEEDED
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {(actionItems.length > 0 ? actionItems : [
-            {
-              id: 'act-1',
-              title: 'Deal DL-1042 requires margin approval & final lock',
-              dealId: 'DEAL-1042',
-              actionLabel: 'Review Deal'
-            },
-            {
-              id: 'act-2',
-              title: 'Invoice INV-1039 (₹3,20,000) is OVERDUE',
-              invoiceId: 'INV-1039',
-              actionLabel: 'View Invoice'
-            },
-            {
-              id: 'act-3',
-              title: 'Stock reconciliation pending for Industrial Controller 500 (Variance: -3 units, ₹96,000)',
-              reconciliationId: 'REC-2026-01',
-              actionLabel: 'Review Variance'
-            }
-          ]).map((item) => (
-            <div key={item.id} className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-xs flex flex-col justify-between space-y-2">
-              <p className="text-xs font-black text-slate-900 leading-snug">{item.title}</p>
-              <div className="flex items-center justify-end pt-1">
-                <button
-                  onClick={() => {
-                    if (item.dealId) {
-                      navigate(`/deals/${item.dealId}`);
-                    } else if (item.invoiceId) {
-                      setActiveTab('invoices');
-                    } else if (item.reconciliationId) {
-                      setActiveTab('reconciliation');
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-[11px] rounded-lg shadow-xs transition-all flex items-center"
-                >
-                  {item.actionLabel || 'Action Item'} <ArrowRight size={12} className="ml-1" />
-                </button>
+      {isDashboardPage && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {/* Total Revenue */}
+            <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1 hover:border-blue-300 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Total Revenue</span>
+                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><DollarSign size={16} /></div>
+              </div>
+              <div className="text-xl md:text-2xl font-black text-slate-900">₹{kpis.totalRevenue.toLocaleString('en-IN')}</div>
+              <div className="text-[11px] text-emerald-600 font-extrabold flex items-center">
+                <ArrowUpRight size={13} className="mr-0.5" /> ↑ 12.4% vs prev period
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+
+            {/* Gross Profit & Margin */}
+            <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1 hover:border-emerald-300 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Gross Profit</span>
+                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><TrendingUp size={16} /></div>
+              </div>
+              <div className="text-xl md:text-2xl font-black text-emerald-700">₹{kpis.grossProfit.toLocaleString('en-IN')}</div>
+              <div className="text-[11px] text-emerald-700 font-extrabold">
+                Margin: <strong>{kpis.grossMargin}%</strong> (Target: 20.0%)
+              </div>
+            </div>
+
+            {/* Outstanding Invoices */}
+            <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1 hover:border-amber-300 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Outstanding Invoices</span>
+                <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg"><FileText size={16} /></div>
+              </div>
+              <div className="text-xl md:text-2xl font-black text-amber-800">₹{kpis.outstandingInvoices.toLocaleString('en-IN')}</div>
+              <div className="text-[11px] text-amber-700 font-bold">
+                1 Unpaid • Overdue: ₹{kpis.overdueAmount.toLocaleString('en-IN')}
+              </div>
+            </div>
+
+            {/* Inventory Value */}
+            <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1 hover:border-purple-300 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Inventory Value</span>
+                <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg"><Truck size={16} /></div>
+              </div>
+              <div className="text-xl md:text-2xl font-black text-slate-900">₹{kpis.inventoryValue.toLocaleString('en-IN')}</div>
+              <div className="text-[11px] text-slate-600 font-bold">
+                {kpis.totalUnits} Units Total • 2 Warehouses
+              </div>
+            </div>
+
+            {/* Accounts Receivable */}
+            <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1">
+              <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">Accounts Receivable</span>
+              <div className="text-lg md:text-xl font-black text-slate-900">₹{kpis.accountsReceivable.toLocaleString('en-IN')}</div>
+              <span className="text-[10px] font-bold text-slate-500">Overdue Buckets: ₹3.20L</span>
+            </div>
+
+            {/* Monthly Recurring ARR */}
+            <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1">
+              <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">MRR (Subscriptions)</span>
+              <div className="text-lg md:text-xl font-black text-blue-700">₹{kpis.mrr.toLocaleString('en-IN')}</div>
+              <span className="text-[10px] font-bold text-emerald-700">{kpis.activeSubscriptionsCount} Active Subscriptions</span>
+            </div>
+
+            {/* Pending Financial Approvals */}
+            <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1">
+              <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">Pending Approvals</span>
+              <div className="text-lg md:text-xl font-black text-amber-700">{kpis.pendingApprovalsCount} Deal Queue</div>
+              <span className="text-[10px] font-bold text-amber-600">Requires Margin Sign-off</span>
+            </div>
+
+            {/* Minimum Margin Floor Policy */}
+            <div className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-xs space-y-1">
+              <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">Company Margin Floor</span>
+              <div className="text-lg md:text-xl font-black text-emerald-800">20.0% Floor</div>
+              <span className="text-[10px] font-bold text-emerald-600">✓ Enforced by Backend</span>
+            </div>
+          </div>
+
+          {/* ACTION CENTER ("FINANCE ACTION REQUIRED") */}
+          <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
+              <h2 className="text-sm font-black text-amber-950 uppercase tracking-wider flex items-center">
+                <AlertTriangle className="text-amber-600 mr-2" size={18} />
+                Finance Action Required ({actionItems.length || 3})
+              </h2>
+              <span className="text-[10px] font-extrabold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md">
+                ATTENTION NEEDED
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {(actionItems.length > 0 ? actionItems : [
+                {
+                  id: 'act-1',
+                  title: 'Deal DL-1042 requires margin approval & final lock',
+                  dealId: 'DEAL-1042',
+                  actionLabel: 'Review Deal'
+                },
+                {
+                  id: 'act-2',
+                  title: 'Invoice INV-1039 (₹3,20,000) is OVERDUE',
+                  invoiceId: 'INV-1039',
+                  actionLabel: 'View Invoice'
+                },
+                {
+                  id: 'act-3',
+                  title: 'Stock reconciliation pending for Industrial Controller 500 (Variance: -3 units, ₹96,000)',
+                  reconciliationId: 'REC-2026-01',
+                  actionLabel: 'Review Variance'
+                }
+              ]).map((item) => (
+                <div key={item.id} className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-xs flex flex-col justify-between space-y-2">
+                  <p className="text-xs font-black text-slate-900 leading-snug">{item.title}</p>
+                  <div className="flex items-center justify-end pt-1">
+                    <button
+                      onClick={() => {
+                        if (item.dealId) {
+                          navigate(`/deals/${item.dealId}`);
+                        } else if (item.invoiceId) {
+                          setActiveTab('invoices');
+                        } else if (item.reconciliationId) {
+                          setActiveTab('reconciliation');
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-[11px] rounded-lg shadow-xs transition-all flex items-center"
+                    >
+                      {item.actionLabel || 'Action Item'} <ArrowRight size={12} className="ml-1" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ---------------------------------------------------- */}
       {/* 4. SUB-NAVIGATION TABS BAR                           */}
