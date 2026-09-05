@@ -180,6 +180,8 @@
 /* ROLE-SPECIFIC AMBIENT BACKGROUND WALLPAPERS (LIGHT)  */
 /* ---------------------------------------------------- */
 .bg-role-client {
+  --theme-card-border: rgba(16, 185, 129, 0.35); /* Dark Emerald border */
+  --theme-card-border-hover: rgba(5, 150, 105, 0.75);
   background-color: #fafaf9;
   background-image: 
     radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
@@ -188,6 +190,8 @@
 }
 
 .bg-role-sales-rep {
+  --theme-card-border: rgba(37, 99, 235, 0.35); /* Dark Blue border */
+  --theme-card-border-hover: rgba(37, 99, 235, 0.75);
   background-color: #f8fafc;
   background-image: 
     radial-gradient(at 10% 10%, rgba(59, 130, 246, 0.07) 0px, transparent 40%),
@@ -196,6 +200,8 @@
 }
 
 .bg-role-manager {
+  --theme-card-border: rgba(147, 51, 234, 0.35); /* Dark Purple border */
+  --theme-card-border-hover: rgba(147, 51, 234, 0.75);
   background-color: #faf5ff;
   background-image: 
     radial-gradient(at 10% 0%, rgba(168, 85, 247, 0.08) 0px, transparent 40%),
@@ -204,6 +210,8 @@
 }
 
 .bg-role-finance {
+  --theme-card-border: rgba(5, 150, 105, 0.45); /* Dark Green border */
+  --theme-card-border-hover: rgba(4, 120, 87, 0.85);
   background-color: #f0fdf4;
   background-image: 
     radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 40%),
@@ -212,6 +220,8 @@
 }
 
 .bg-role-factory {
+  --theme-card-border: rgba(13, 148, 136, 0.35); /* Dark Cyan/Teal border */
+  --theme-card-border-hover: rgba(13, 148, 136, 0.75);
   background-color: #f8fafc;
   background-image: 
     radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.07) 0px, transparent 50%),
@@ -219,11 +229,31 @@
 }
 
 .bg-role-admin {
+  --theme-card-border: rgba(225, 29, 72, 0.35); /* Dark Rose/Violet border */
+  --theme-card-border-hover: rgba(225, 29, 72, 0.75);
   background-color: #f8fafc;
   background-image: 
     radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.07) 0px, transparent 50%),
     radial-gradient(at 50% 100%, rgba(59, 130, 246, 0.06) 0px, transparent 50%);
+}
+
+/* ---------------------------------------------------- */
+/* AUTOMATED THEME-MATCHED CARD BORDERS FOR ALL PAGES   */
+/* ---------------------------------------------------- */
+.glass-card,
+.card-shadow,
+div.bg-white {
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: var(--theme-card-border, rgba(203, 213, 225, 0.9)) !important;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+}
+
+.glass-card:hover,
+.card-shadow:hover,
+div.bg-white:hover {
+  border-color: var(--theme-card-border-hover, rgba(148, 163, 184, 0.95)) !important;
 }
 
 /* Custom Scrollbar for Enterprise UI */
