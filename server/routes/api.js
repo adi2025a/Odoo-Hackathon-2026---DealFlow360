@@ -159,11 +159,24 @@ router.post('/auth/login', async (req, res) => {
 router.post('/auth/demo-login', async (req, res) => {
   try {
     const { role } = req.body;
-    const user = await User.findOne({ role });
+    let user = await User.findOne({ role });
+
+    if (!user) {
+      console.log(`⚠️ Demo user for role ${role} not found. Auto-seeding database...`);
+      await seedDatabase();
+      user = await User.findOne({ role });
+    }
 
     if (!user) return res.status(404).json({ error: `No user found for role: ${role}` });
 
-    const tokenPayload = { id: user._id, name: user.name, email: user.email, role: user.role, discountAuthority: user.discountAuthority };
+    const tokenPayload = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      company: user.company || 'DealFlow360',
+      discountAuthority: user.discountAuthority
+    };
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
 
     res.cookie('token', token, { httpOnly: true, secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
@@ -173,8 +186,30 @@ router.post('/auth/demo-login', async (req, res) => {
   }
 });
 
-router.get('/auth/me', authenticateToken, async (req, res) => {
-  return res.json({ user: req.user });
+router.get('/auth/me', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  let token = null;
+
+  if (authHeader) {
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
+    } else {
+      token = authHeader.trim();
+    }
+  }
+
+  if (!token) token = req.cookies?.token || req.query?.token;
+
+  if (!token) {
+    return res.json({ user: null });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.json({ user: null });
+    }
+    return res.json({ user });
+  });
 });
 
 router.post('/auth/logout', (req, res) => {

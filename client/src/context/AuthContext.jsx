@@ -26,10 +26,22 @@ export const AuthProvider = ({ children }) => {
       const storedToken = localStorage.getItem('dealflow360_token');
       if (storedToken) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      } else {
+        setUser(null);
+        setLoading(false);
+        return;
       }
       const res = await axios.get('/api/auth/me');
-      setUser(res.data.user);
+      if (res.data && res.data.user) {
+        setUser(res.data.user);
+      } else {
+        localStorage.removeItem('dealflow360_token');
+        delete axios.defaults.headers.common['Authorization'];
+        setUser(null);
+      }
     } catch (err) {
+      localStorage.removeItem('dealflow360_token');
+      delete axios.defaults.headers.common['Authorization'];
       setUser(null);
     } finally {
       setLoading(false);

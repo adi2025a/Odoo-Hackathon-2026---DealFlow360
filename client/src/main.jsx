@@ -16,6 +16,11 @@ if (rawApiUrl) {
 
 axios.defaults.withCredentials = true;
 
+const storedToken = localStorage.getItem('dealflow360_token');
+if (storedToken) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+}
+
 console.log('📡 DEALFLOW360 API Base URL:', axios.defaults.baseURL || '(Relative Path)');
 
 ReactDOM.createRoot(document.getElementById('root')).render(

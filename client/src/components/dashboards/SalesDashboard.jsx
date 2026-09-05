@@ -41,18 +41,23 @@ export default function SalesDashboard({ viewMode }) {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('dealflow360_token');
+      if (!token && !user) {
+        setLoading(false);
+        return;
+      }
       if (currentView === 'leads') {
         const res = await axios.get('/api/leads');
-        setLeads(res.data);
+        if (res.data) setLeads(res.data);
       } else if (currentView === 'deals' || currentView === 'customers' || currentView === 'quotations') {
         const res = await axios.get('/api/deals');
-        setDeals(res.data);
+        if (res.data) setDeals(res.data);
       } else if (currentView === 'products') {
         const res = await axios.get('/api/admin/products');
-        setProducts(res.data);
+        if (res.data) setProducts(res.data);
       }
     } catch (err) {
-      console.warn('API load warning:', err.message);
+      // Gracefully fall back to local mock state without printing 401 warnings
     } finally {
       setLoading(false);
     }
