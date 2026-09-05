@@ -67,8 +67,8 @@ export default function FinanceDashboard({ viewMode }) {
   };
 
   const currentStage = dealData?.deal?.stage;
-  const isFinancePending = currentStage === 'FINANCE_APPROVAL' || (!currentStage && loading);
-  const isAwaitingManager = currentStage === 'MANAGER_APPROVAL' || currentStage === 'QUOTATION';
+  const isFinancePending = currentStage === 'FINANCE_APPROVAL';
+  const isAwaitingManager = currentStage === 'MANAGER_APPROVAL' || currentStage === 'QUOTATION' || (!currentStage && !loading);
   const isFinalApproved = currentStage === 'FULFILLMENT' || currentStage === 'APPROVED' || currentStage === 'ORDER_CREATED' || currentStage === 'COMPLETED';
 
   return (
@@ -119,22 +119,28 @@ export default function FinanceDashboard({ viewMode }) {
 
       {/* Final Approval by Margin Calc Section */}
       {(viewMode === 'approvals' || !viewMode) && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
-          <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-between border-b border-slate-100 pb-3">
-            <span className="flex items-center">
-              <CheckCircle2 className={isFinalApproved ? "text-emerald-600 mr-2" : isFinancePending ? "text-amber-600 mr-2" : "text-purple-600 mr-2"} size={20} />
-              {isFinalApproved ? "Finance Approval & Margin Verification Complete" : isFinancePending ? "Pending Finance Approval & Margin Calculation" : "Awaiting Sales Manager Discount Approval (Step 2)"}
-            </span>
-            <span className={`text-xs font-black px-2.5 py-1 rounded-md uppercase ${
-              isFinalApproved ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-              isFinancePending ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-              'bg-purple-100 text-purple-800 border border-purple-300'
-            }`}>
-              {isFinalApproved ? 'STATUS: DEAL FINAL LOCKED & APPROVED ✓' :
-               isFinancePending ? 'ACTION REQUIRED: PENDING FINANCE SIGN-OFF' :
-               'STAGE: PENDING MANAGER APPROVAL'}
-            </span>
-          </h3>
+        loading && !dealData ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow flex items-center justify-center py-10 text-slate-400">
+            <RefreshCw size={22} className="animate-spin mr-3 text-emerald-600" />
+            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">Syncing Live Governance Status from Server...</span>
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
+            <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-between border-b border-slate-100 pb-3">
+              <span className="flex items-center">
+                <CheckCircle2 className={isFinalApproved ? "text-emerald-600 mr-2" : isFinancePending ? "text-amber-600 mr-2" : "text-purple-600 mr-2"} size={20} />
+                {isFinalApproved ? "Finance Approval & Margin Verification Complete" : isFinancePending ? "Pending Finance Approval & Margin Calculation" : "Awaiting Sales Manager Discount Approval (Step 2)"}
+              </span>
+              <span className={`text-xs font-black px-2.5 py-1 rounded-md uppercase ${
+                isFinalApproved ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                isFinancePending ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                'bg-purple-100 text-purple-800 border border-purple-300'
+              }`}>
+                {isFinalApproved ? 'STATUS: DEAL FINAL LOCKED & APPROVED ✓' :
+                 isFinancePending ? 'ACTION REQUIRED: PENDING FINANCE SIGN-OFF' :
+                 'STAGE: PENDING MANAGER APPROVAL'}
+              </span>
+            </h3>
 
           {/* STATE A: Awaiting Sales Manager Approval */}
           {isAwaitingManager && (
@@ -180,7 +186,7 @@ export default function FinanceDashboard({ viewMode }) {
                   }}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center"
                 >
-                  <CheckCircle2 size={15} className="mr-1.5" /> Approve as Manager & Pass to Finance Queue →
+                  <CheckCircle2 size={15} className="mr-1.5" /> Approve as Manager & Pass to Finance Queue
                 </button>
 
                 <button
@@ -262,13 +268,13 @@ export default function FinanceDashboard({ viewMode }) {
                     onClick={() => navigate('/factory')}
                     className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center"
                   >
-                    <Truck size={15} className="mr-1.5" /> View Factory Fulfillment Status →
+                    <Truck size={15} className="mr-1.5" /> View Factory Fulfillment Status <ArrowRight size={14} className="ml-1" />
                   </button>
                   <button
                     onClick={() => navigate('/deals/DEAL-1042')}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center"
                   >
-                    Open Deal Workspace →
+                    Open Deal Workspace <ArrowRight size={14} className="ml-1" />
                   </button>
                 </div>
               </div>
@@ -278,7 +284,8 @@ export default function FinanceDashboard({ viewMode }) {
               </p>
             </div>
           )}
-        </div>
+          </div>
+        )
       )}
 
       {/* Mid-Cycle Subscription Proration Simulator */}
