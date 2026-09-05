@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Send, CheckCircle2, MessageSquare, ShoppingCart, DollarSign, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 export default function ClientPortal({ view = 'dashboard' }) {
   const { user, showToast } = useAuth();
   const navigate = useNavigate();
+
+  const [clientDeals, setClientDeals] = useState([]);
 
   const [formData, setFormData] = useState({
     company: user?.company || 'Acme Industries',
@@ -19,17 +21,43 @@ export default function ClientPortal({ view = 'dashboard' }) {
     budget: 5000000
   });
 
+  useEffect(() => {
+    fetchClientDeals();
+  }, []);
+
+  const fetchClientDeals = async () => {
+    try {
+      const res = await axios.get('/api/deals');
+      if (res.data) setClientDeals(res.data);
+    } catch (err) {}
+  };
+
   const handleSubmitQuery = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/leads', formData);
+      const res = await axios.post('/api/leads', formData);
       showToast('Client Query submitted successfully! Sales Rep assigned & notified.', 'success');
-      navigate('/customer/quotes');
+      const targetDealNum = res.data?.deal?.dealNumber || 'DEAL-1042';
+      navigate(`/deals/${targetDealNum}`);
     } catch (err) {
       showToast('Query submitted! Lead created and assigned to Sales Rep Rahul Sharma.', 'success');
       navigate('/customer/quotes');
     }
   };
+
+  const defaultMockDeals = [
+    {
+      _id: 'd-1',
+      dealNumber: 'DEAL-1042',
+      title: '100x Industrial Controller 500 + Installation',
+      dealValue: 4486330,
+      stage: 'QUOTATION',
+      salesRep: { name: 'Rahul Sharma' }
+    }
+  ];
+
+  const displayDeals = (clientDeals && clientDeals.length > 0) ? clientDeals : defaultMockDeals;
+  const primaryDealNumber = displayDeals[0]?.dealNumber || 'DEAL-1042';
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
@@ -109,31 +137,33 @@ export default function ClientPortal({ view = 'dashboard' }) {
 
       {view === 'quotes' && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 card-shadow space-y-4">
-          <h2 className="text-lg font-extrabold text-slate-900">Active Client Quotations</h2>
-          <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded">Quote #Q-1042</span>
-              <h3 className="font-extrabold text-slate-900 text-base mt-1">100x Industrial Controller 500 + Installation</h3>
-              <p className="text-xs text-slate-500">Sales Rep: Rahul Sharma • Issued: Today</p>
-            </div>
-            <div className="text-right space-y-1">
-              <span className="text-xl font-black text-slate-900 block">₹44,86,330</span>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => navigate('/deals/DEAL-1042')}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center inline-flex"
-                >
-                  View & Negotiate Quote <ArrowRight size={14} className="ml-1" />
-                </button>
-                <button
-                  onClick={() => navigate('/deals/DEAL-1042')}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center inline-flex"
-                >
-                  <MessageSquare size={14} className="mr-1.5" /> Chat with Sales Rep
-                </button>
+          <h2 className="text-lg font-extrabold text-slate-900">Active Client Quotations & Chat Rooms</h2>
+          {displayDeals.map(d => (
+            <div key={d._id || d.dealNumber} className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded">Quote #{d.dealNumber}</span>
+                <h3 className="font-extrabold text-slate-900 text-base mt-1">{d.title || 'Automation Controller Package'}</h3>
+                <p className="text-xs text-slate-500">Sales Rep: {d.salesRep?.name || 'Rahul Sharma'} • Stage: {d.stage || 'QUOTATION'}</p>
+              </div>
+              <div className="text-right space-y-1">
+                <span className="text-xl font-black text-slate-900 block">₹{(d.dealValue || 4486330).toLocaleString('en-IN')}</span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => navigate(`/deals/${d.dealNumber}`)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center inline-flex"
+                  >
+                    View & Negotiate Quote <ArrowRight size={14} className="ml-1" />
+                  </button>
+                  <button
+                    onClick={() => navigate(`/deals/${d.dealNumber}`)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center inline-flex"
+                  >
+                    <MessageSquare size={14} className="mr-1.5" /> Chat with Sales Rep ({d.dealNumber})
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
       )}
 
@@ -141,8 +171,8 @@ export default function ClientPortal({ view = 'dashboard' }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">My Active Quotes</span>
-            <span className="text-2xl font-black text-slate-900">1 Quote</span>
-            <p className="text-xs text-blue-600 font-semibold cursor-pointer" onClick={() => navigate('/customer/quotes')}>View Q-1042 →</p>
+            <span className="text-2xl font-black text-slate-900">{displayDeals.length} Quote(s)</span>
+            <p className="text-xs text-blue-600 font-semibold cursor-pointer" onClick={() => navigate(`/deals/${primaryDealNumber}`)}>View Active Chat ({primaryDealNumber}) →</p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Confirmed Orders</span>
