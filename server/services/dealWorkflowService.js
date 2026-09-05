@@ -117,7 +117,12 @@ export async function createDealFromLead(leadId, repUser) {
   if (deal) return deal;
 
   const dealCount = await Deal.countDocuments();
-  const dealNumber = `DEAL-${1040 + dealCount + 1}`;
+  let dealNumber = `DEAL-${1050 + dealCount + 1}`;
+  let existingDeal = await Deal.findOne({ dealNumber });
+  while (existingDeal) {
+    dealNumber = `DEAL-${Math.floor(1000 + Math.random() * 9000)}`;
+    existingDeal = await Deal.findOne({ dealNumber });
+  }
 
   const clientUser = await User.findOne({ email: lead.email }) || await User.findOne({ role: 'CLIENT' });
   const managerUser = await User.findOne({ role: 'SALES_MANAGER' });
@@ -196,7 +201,12 @@ export async function submitQuotation(dealId, quoteData, user) {
 
   if (!quote) {
     const qCount = await Quotation.countDocuments();
-    const quoteNumber = `Q-${1040 + qCount + 1}`;
+    let quoteNumber = `Q-${1050 + qCount + 1}`;
+    let existingQuote = await Quotation.findOne({ quoteNumber });
+    while (existingQuote) {
+      quoteNumber = `Q-${Math.floor(10000 + Math.random() * 90000)}`;
+      existingQuote = await Quotation.findOne({ quoteNumber });
+    }
 
     quote = await Quotation.create({
       quoteNumber,
@@ -611,7 +621,12 @@ export async function clientConfirmQuotation(dealId, clientUser) {
   let order = await Order.findOne({ deal: deal._id });
   if (!order) {
     const oCount = await Order.countDocuments();
-    const orderNumber = `ORD-${2026 + oCount + 1}`;
+    let orderNumber = `ORD-${2026 + oCount + 1}`;
+    let existingOrder = await Order.findOne({ orderNumber });
+    while (existingOrder) {
+      orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
+      existingOrder = await Order.findOne({ orderNumber });
+    }
 
     order = await Order.create({
       orderNumber,

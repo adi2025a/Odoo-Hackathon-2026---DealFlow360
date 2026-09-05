@@ -251,7 +251,12 @@ router.get('/leads', authenticateToken, async (req, res) => {
 router.post('/leads', async (req, res) => {
   try {
     const count = await Lead.countDocuments();
-    const leadNumber = `LD-2026-${100 + count + 1}`;
+    let leadNumber = `LD-2026-${100 + count + 1}`;
+    let existingLead = await Lead.findOne({ leadNumber });
+    while (existingLead) {
+      leadNumber = `LD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      existingLead = await Lead.findOne({ leadNumber });
+    }
 
     const defaultRep = await User.findOne({ role: 'SALES_REP' });
 
@@ -495,7 +500,12 @@ router.post('/quotations', authenticateToken, async (req, res) => {
     });
 
     const quoteCount = await Quotation.countDocuments();
-    const quoteNumber = `Q-${1040 + quoteCount + 1}`;
+    let quoteNumber = `Q-${1050 + quoteCount + 1}`;
+    let existingQuote = await Quotation.findOne({ quoteNumber });
+    while (existingQuote) {
+      quoteNumber = `Q-${Math.floor(10000 + Math.random() * 90000)}`;
+      existingQuote = await Quotation.findOne({ quoteNumber });
+    }
 
     const quotation = await Quotation.create({
       quoteNumber,
